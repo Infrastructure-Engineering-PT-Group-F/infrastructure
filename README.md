@@ -1,8 +1,8 @@
 # infrastructure
 
 Terraform IaC for the FH Burgenland Group F platform: VPC, GKE, IAM / Workload
-Identity, and platform addons. Provisions the **Day 1 foundation** — an empty
-but ready cluster. Tenant/application logic lives in the `gitops/` repo.
+Identity, and platform addons. Provisions an empty but ready cluster. 
+Tenant/application logic lives in the `gitops/` repo.
 
 ## IaC tool
 
