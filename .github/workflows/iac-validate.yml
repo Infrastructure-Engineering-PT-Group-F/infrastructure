@@ -1,0 +1,29 @@
+---
+name: iac-validate
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      # -backend=false: validation needs no remote state and no cloud creds.
+      - name: terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        run: terraform validate -no-color
