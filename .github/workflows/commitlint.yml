@@ -24,14 +24,7 @@ jobs:
           node-version: lts/*
 
       - name: Install commitlint
-        run: npm install -D @commitlint/cli @commitlint/config-conventional
-
-      - name: Print versions
-        run: |
-          git --version
-          node --version
-          npm --version
-          npx commitlint --version
+        run: npm install -D @commitlint/cli@21.0.1 @commitlint/config-conventional@21.0.1
 
       - name: Validate the latest commit (push)
         if: github.event_name == 'push'
