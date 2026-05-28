@@ -21,9 +21,17 @@ jobs:
       - name: terraform fmt
         run: terraform fmt -check -recursive
 
+      # Validate every module directory (auto-discovered), so new modules
+      # (e.g. bootstrap/, platform/) are covered without editing this workflow.
       # -backend=false: validation needs no remote state and no cloud creds.
-      - name: terraform init (no backend)
-        run: terraform init -backend=false
-
-      - name: terraform validate
-        run: terraform validate -no-color
+      - name: terraform validate (per module)
+        run: |
+          set -euo pipefail
+          modules=$(find . -type f -name '*.tf' \
+            -not -path '*/.terraform/*' -printf '%h\n' | sort -u)
+          for d in $modules; do
+            echo "::group::validate $d"
+            terraform -chdir="$d" init -backend=false
+            terraform -chdir="$d" validate -no-color
+            echo "::endgroup::"
+          done
