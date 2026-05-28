@@ -3,6 +3,17 @@ variable "project_id" {
   type        = string
 }
 
+variable "region" {
+  description = "GCP region for the Terraform state bucket (single region for cost; cluster region in #4)."
+  type        = string
+  default     = "europe-west1"
+}
+
+variable "state_bucket_name" {
+  description = "Globally-unique name of the GCS bucket holding remote Terraform state. Recommended: \"<project_id>-tfstate\"."
+  type        = string
+}
+
 variable "tf_sa_account_id" {
   description = "Account ID for the Terraform automation service account."
   type        = string
