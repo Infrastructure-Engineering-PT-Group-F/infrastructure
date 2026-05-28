@@ -16,4 +16,15 @@ Tenant/application logic lives in the `gitops/` repo.
 
 Each Terraform root module lives in its own folder so they are clearly separate:
 
-- `platform/` — the main platform config (VPC, GKE, addons).
+- `bootstrap/` — one-time seed module run by a operator with their own
+  ADC. Creates the least-privilege `terraform-automation` service account and
+  enables the APIs needed to impersonate it. See [bootstrap/README.md](bootstrap/README.md).
+- `platform/` — the main platform config (VPC, GKE, addons). Impersonates the
+  SA created by `bootstrap/`.
+
+## Provisioning identity
+
+The `platform/` module runs as the `terraform-automation` SA via
+`impersonate_service_account`. No long-lived SA keys; operators with
+`roles/iam.serviceAccountTokenCreator` on the SA mint short-lived tokens. Roles
+on the SA are granted incrementally per issue (least privilege).

@@ -3,6 +3,12 @@ variable "project_id" {
   type        = string
 }
 
+variable "tf_sa_account_id" {
+  description = "Account ID of the Terraform automation SA created by the bootstrap module."
+  type        = string
+  default     = "terraform-automation"
+}
+
 variable "region" {
   description = "Default GCP region."
   type        = string
