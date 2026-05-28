@@ -79,6 +79,13 @@ roles like `roles/owner` or `roles/editor`. Two kinds of grants:
   the bucket-scoped `roles/storage.objectAdmin` in `state_bucket.tf`). Prefer
   these whenever a role only needs to apply to one resource.
 
+> **Also enable the API.** A role lets the SA call an API; the API has to be
+> *enabled* on the project for the call to succeed at all. Adding
+> `roles/compute.networkAdmin` without `compute.googleapis.com` enabled fails
+> with `googleapi: Error 403 ... SERVICE_DISABLED`. Every issue that adds a
+> role for a new service must also add a `google_project_service` resource
+> for the matching API in `apis.tf` — see `apis.tf` for the existing pattern.
+
 ### Add a project-wide role (typical case)
 
 1. In the PR for the issue that needs the new capability, append the role to

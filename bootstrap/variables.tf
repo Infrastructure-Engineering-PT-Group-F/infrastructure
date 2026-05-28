@@ -23,7 +23,10 @@ variable "tf_sa_account_id" {
 variable "tf_sa_roles" {
   description = "Project roles granted to the Terraform SA. Grown per issue (least privilege)."
   type        = list(string)
-  default     = ["roles/serviceusage.serviceUsageAdmin"]
+  default = [
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/compute.networkAdmin", # added for #8 — VPC + subnets
+  ]
 }
 
 variable "operator_members" {
