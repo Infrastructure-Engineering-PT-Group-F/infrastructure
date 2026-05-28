@@ -28,6 +28,30 @@ bucket layout, auth model, and recovery commands, see
 
 Create `terraform.tfvars` (gitignored) with at least `project_id`.
 
+## Network layout
+
+One **custom-mode VPC** with one regional subnet in `europe-west1`. The
+subnet carries two secondary ranges so GKE can run in **VPC-native**
+(alias-IP) mode.
+
+| Range | Purpose | Default CIDR | Variable |
+|---|---|---|---|
+| Subnet primary | Node IPs | `10.0.0.0/24` | `subnet_cidr` |
+| Secondary `pods` | Pod IPs | `10.10.0.0/16` | `pods_cidr` |
+| Secondary `services` | Service IPs | `10.20.0.0/20` | `services_cidr` |
+
+Notes:
+
+- VPC name `vpc-platform` (`var.vpc_name`); subnet name
+  `vpc-platform-europe-west1` so a second region could be added later
+  without rename.
+- `private_ip_google_access = true` on the subnet — nodes reach
+  `*.googleapis.com` without external IPs or Cloud NAT.
+- **Secondary range sizes are baked at create time.** Changing
+  `pods_cidr` or `services_cidr` after the subnet exists triggers
+  destroy/recreate, which takes down the cluster. Pick once with headroom
+  — the defaults are GKE's own recommendation.
+
 ## Run
 
 ```sh
