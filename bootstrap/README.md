@@ -6,7 +6,7 @@ It creates:
 - the least-privilege `terraform-automation` service account that the
   `platform/` module impersonates for all later provisioning, and
 - the GCS bucket that holds remote Terraform state for both `bootstrap/` and
-  `platform/`, with bucket-scoped `roles/storage.objectAdmin` on the SA.`
+  `platform/`, with bucket-scoped `roles/storage.objectAdmin` on the SA.
 
 For the shared bucket layout, auth model, and recovery commands, see
 [`../README.md`](../README.md#remote-state).
