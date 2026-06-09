@@ -19,8 +19,8 @@ For the shared bucket layout, auth model, and recovery commands, see
 | `state_bucket_name` | `<project_id>-tfstate` | Globally unique. |
 | `operator_members` | `["user:you@example.com"]` | IAM members allowed to impersonate the SA. |
 
-`region` defaults to `europe-west1`; override only if you change the cluster
-region.
+`region` defaults to `europe-west1` for the state bucket and is independent of
+the platform cluster region.
 
 ## Run
 

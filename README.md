@@ -10,7 +10,7 @@ Tenant/application logic lives in the `gitops/` repo.
 
 - Provider floor and version pins: `platform/versions.tf`
 - Provider config (project / region / zone): `platform/providers.tf`, `platform/variables.tf`
-- Default region `europe-west1`, zone `europe-west1-b`.
+- Default platform region `europe-west3`, zone `europe-west3-a`.
 
 ## Layout
 

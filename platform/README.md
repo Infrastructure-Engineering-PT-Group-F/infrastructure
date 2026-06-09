@@ -1,34 +1,81 @@
 # platform
 
-Main Terraform configuration for the GKE platform (VPC, GKE, IAM, addons).
-Provisions an empty but ready cluster. Tenant logic lives in `gitops` repo.
+Main HashiCorp Terraform configuration for the platform infrastructure.
+
+This root module provisions the shared platform network and a zonal Google
+Kubernetes Engine Standard cluster in `europe-west1-b` with one dedicated
+managed node pool.
 
 State is stored in the GCS bucket created by `bootstrap/` under
 `prefix = "platform"`. The `google` provider runs as the
-`terraform-automation` SA via impersonation - no SA keys. For the shared
-bucket layout, auth model, and recovery commands, see
-[`../README.md`](../README.md#remote-state).
+`terraform-automation` service account via impersonation, with no service
+account keys. For the shared bucket layout, auth model, and recovery commands,
+see [`../README.md`](../README.md#remote-state).
+
+## What This Provisions
+
+- Creates the custom-mode platform VPC and a regional subnet in
+  `europe-west1`.
+- Creates subnet secondary IP ranges named `pods` and `services`.
+- Creates a zonal GKE Standard cluster in `europe-west1-b`.
+- Removes the default node pool and creates a dedicated managed node pool.
+- Enables Workload Identity with the standard
+  `<project_id>.svc.id.goog` workload identity pool.
+- Keeps worker nodes private, so they do not receive public IP addresses.
+- Keeps the Kubernetes control plane endpoint publicly reachable.
+- Uses the platform VPC, platform subnet, and the `pods` and `services`
+  secondary ranges for VPC-native IP allocation.
+
+## Selected GKE Sizing
+
+The managed node pool defaults to:
+
+| Setting | Value |
+|---|---|
+| Cluster type | Zonal GKE Standard |
+| Location | `europe-west1-b` |
+| Node count | `3` |
+| Machine type | `n2-standard-2` |
+| Operating system | Container-Optimized OS with containerd |
+| Provisioning model | Regular |
+| Boot disk type | Balanced Persistent Disk (`pd-balanced`) |
+| Boot disk size | `40` GiB per node |
+
+Three `n2-standard-2` nodes provide a small but usable baseline for shared
+platform services while keeping the initial cost profile modest.
 
 ## Prerequisites
 
-1. `bootstrap/` has been applied — SA + state bucket exist; SA holds bucket-
-   scoped `roles/storage.objectAdmin`. See `../bootstrap/README.md`.
-2. Your user is listed in `operator_members` for `bootstrap/`, so you hold
-   `roles/iam.serviceAccountTokenCreator` on the SA.
-3. `gcloud` installed and pointed at the right project.
+1. `bootstrap/` has been applied so the remote state bucket and
+   `terraform-automation` service account exist.
+2. The bootstrap module has enabled the required Google Cloud APIs, including
+   `compute.googleapis.com` and `container.googleapis.com`.
+3. Your user is listed in `operator_members` for `bootstrap/`, so you hold
+   `roles/iam.serviceAccountTokenCreator` on the service account.
+4. `gcloud` is installed, authenticated, and pointed at the right project.
+5. The platform VPC and subnet are managed in this root module, so the cluster
+   can attach directly to them during planning and apply.
 
-## Required tfvars
+## Required Variables
+
+Create `terraform.tfvars` locally. This file is gitignored and must not be
+committed.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `project_id` | — (required) | Same project as `bootstrap/`. |
+| `project_id` | required | Same project as `bootstrap/`. |
 | `tf_sa_account_id` | `terraform-automation` | Must match `bootstrap/`. |
-| `region` | `europe-west1` | |
-| `zone` | `europe-west1-b` | |
+| `region` | `europe-west1` | Provider default region. |
+| `zone` | `europe-west1-b` | Zonal GKE cluster location. |
+| `cluster_name` | `group-f-platform-gke` | GKE cluster name. |
+| `node_pool_name` | `primary-pool` | Dedicated managed node pool name. |
+| `node_count` | `3` | Worker node count. |
+| `node_machine_type` | `n2-standard-2` | Worker machine type. |
+| `node_boot_disk_size_gb` | `40` | Balanced PD boot disk size per node. |
+| `cluster_deletion_protection` | `false` | Allows cluster deletion for environment cleanup. |
+| `master_ipv4_cidr_block` | `172.16.0.0/28` | Private control plane CIDR used for cluster-to-node communication. |
 
-Create `terraform.tfvars` (gitignored) with at least `project_id`.
-
-## Network layout
+## Network Layout
 
 One **custom-mode VPC** with one regional subnet in `europe-west1`. The
 subnet carries two secondary ranges so GKE can run in **VPC-native**
@@ -45,56 +92,68 @@ Notes:
 - VPC name `vpc-platform` (`var.vpc_name`); subnet name
   `vpc-platform-europe-west1` so a second region could be added later
   without rename.
-- `private_ip_google_access = true` on the subnet — nodes reach
+- `private_ip_google_access = true` on the subnet - nodes reach
   `*.googleapis.com` without external IPs.
 - **Secondary range sizes are baked at create time.** Changing
   `pods_cidr` or `services_cidr` after the subnet exists triggers
   destroy/recreate, which takes down the cluster. Pick once with headroom
-  — the defaults are GKE's own recommendation.
+  - the defaults are GKE's own recommendation.
+- The GKE cluster uses `google_compute_network.platform`,
+  `google_compute_subnetwork.platform`, and the fixed secondary range names
+  `pods` and `services`.
+- The GKE cluster uses private nodes and reserves
+  `master_ipv4_cidr_block` for control plane communication while keeping the
+  control plane endpoint publicly reachable.
 
-## Outbound internet (Cloud NAT)
+## Outbound Internet (Cloud NAT)
 
 Nodes have no external IPs, so reaching the public internet needs egress NAT.
 `nat.tf` adds a regional **Cloud Router** plus **Cloud NAT** gateway on the
 platform VPC:
 
-- `nat_ip_allocate_option = "AUTO_ONLY"` — Google allocates ephemeral NAT IPs.
+- `nat_ip_allocate_option = "AUTO_ONLY"` - Google allocates ephemeral NAT IPs.
   No reserved static egress IP.
-- `source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"` —
-  NATs the subnet primary **and** the `pods`/`services` secondary ranges.
-- `log_config` is on with `ERRORS_ONLY` to surface dropped egress cheaply.
+- `source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"` -
+  NATs the subnet primary and the `pods`/`services` secondary ranges.
+- `log_config` is enabled with `ERRORS_ONLY` to surface dropped egress
+  cheaply.
 
 ## Run
 
 ```sh
-gcloud auth application-default login        # if not already
+gcloud auth application-default login
 cd infrastructure/platform
-terraform init                               # connects to gs://<project>-tfstate/platform/
-terraform plan -out tfplan
-terraform apply tfplan                       # operator applies; cost-sensitive
+terraform init                    # initialize providers and backend
+terraform plan -out tfplan        # write the reviewed plan to a file
 ```
 
-`terraform init` creates the `platform/` prefix in the bucket on first run —
-no migration step needed (unlike `bootstrap/`).
-
-## Day-to-day commands
+`terraform apply` must be executed manually by the team after reviewing the
+plan:
 
 ```sh
-terraform state list                         # what we manage
-terraform output                             # platform outputs
-terraform plan                               # dry-run before any change
-terraform fmt -recursive                     # before committing
+terraform apply tfplan
+```
+
+Do not run `terraform apply` from automation.
+
+## Day-to-Day Commands
+
+```sh
+terraform state list              # inspect managed resources
+terraform output                  # read exported values
+terraform plan                    # preview in-place changes
+terraform fmt -recursive          # format Terraform files
+terraform validate                # verify configuration syntax and schema
 ```
 
 ## Troubleshooting
 
-- **`Error refreshing state: ... 403 ... storage.objects.get`** — your ADC
-  doesn't have access to the state bucket. Re-check that you ran the bootstrap
-  apply against this project, and that your account has at least
-  `roles/storage.objectViewer` on the bucket (operator's project-level
-  `roles/editor` covers this).
-- **`Error: failed to get a token ... iam.serviceAccountTokenCreator`** — you
-  are not in `operator_members`. Re-apply `bootstrap/` with your account
-  added, or ask the bootstrap operator to add you.
-- **`bucket ... does not exist`** during `terraform init` — bootstrap hasn't
-  been applied yet; complete `bootstrap/` first.
+- `Error refreshing state: ... 403 ... storage.objects.get`: your ADC does not
+  have access to the state bucket. Re-check bootstrap and operator access.
+- `Error: failed to get a token ... iam.serviceAccountTokenCreator`: your user
+  is not allowed to impersonate the `terraform-automation` service account.
+- `bucket ... does not exist` during `terraform init`: bootstrap has not been
+  applied yet.
+- GKE network or secondary range errors during planning/apply usually mean the
+  platform VPC/subnet resources or their `pods`/`services` secondary ranges do
+  not match what the cluster expects.
