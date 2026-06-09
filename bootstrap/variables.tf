@@ -4,7 +4,7 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region for the Terraform state bucket."
+  description = "GCP region for the Terraform state bucket (single region for cost; independent of the platform cluster region)."
   type        = string
   default     = "europe-west1"
 }
@@ -27,6 +27,8 @@ variable "tf_sa_roles" {
     "roles/serviceusage.serviceUsageAdmin",
     "roles/compute.networkAdmin",
     "roles/iam.serviceAccountAdmin",
+    "roles/container.admin",
+    "roles/iam.serviceAccountUser",
   ]
 }
 
