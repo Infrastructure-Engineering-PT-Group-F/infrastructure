@@ -46,11 +46,23 @@ Notes:
   `vpc-platform-europe-west1` so a second region could be added later
   without rename.
 - `private_ip_google_access = true` on the subnet — nodes reach
-  `*.googleapis.com` without external IPs or Cloud NAT.
+  `*.googleapis.com` without external IPs.
 - **Secondary range sizes are baked at create time.** Changing
   `pods_cidr` or `services_cidr` after the subnet exists triggers
   destroy/recreate, which takes down the cluster. Pick once with headroom
   — the defaults are GKE's own recommendation.
+
+## Outbound internet (Cloud NAT)
+
+Nodes have no external IPs, so reaching the public internet needs egress NAT.
+`nat.tf` adds a regional **Cloud Router** plus **Cloud NAT** gateway on the
+platform VPC:
+
+- `nat_ip_allocate_option = "AUTO_ONLY"` — Google allocates ephemeral NAT IPs.
+  No reserved static egress IP.
+- `source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"` —
+  NATs the subnet primary **and** the `pods`/`services` secondary ranges.
+- `log_config` is on with `ERRORS_ONLY` to surface dropped egress cheaply.
 
 ## Run
 

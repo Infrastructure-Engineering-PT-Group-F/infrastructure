@@ -17,3 +17,13 @@ output "services_range_name" {
   description = "Name of the secondary range for service IPs. Consumed by #9."
   value       = "services"
 }
+
+output "nat_router_name" {
+  description = "Name of the Cloud Router hosting Cloud NAT for outbound egress #28."
+  value       = google_compute_router.platform.name
+}
+
+output "nat_name" {
+  description = "Name of the Cloud NAT gateway providing egress for GHCR image pulls #28."
+  value       = google_compute_router_nat.platform.name
+}
