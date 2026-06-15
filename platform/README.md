@@ -126,7 +126,8 @@ cd infrastructure/platform
 terraform init                    # initialize providers and backend
 terraform plan -out tfplan        # write the reviewed plan to a file
 ```
-
+`terraform init` creates the `platform/` prefix in the bucket on first run -
+no migration step needed, unlike `bootstrap/`.
 `terraform apply` must be executed manually by the team after reviewing the
 plan:
 
