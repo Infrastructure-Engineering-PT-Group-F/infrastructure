@@ -20,14 +20,15 @@ resource "google_container_cluster" "platform" {
     services_secondary_range_name = "services"
   }
 
+  private_cluster_config {
+    enable_private_nodes    = true
+    enable_private_endpoint = false
+    master_ipv4_cidr_block  = var.master_ipv4_cidr_block
+  }
+
   workload_identity_config {
     workload_pool = local.workload_identity_pool
   }
-
-  depends_on = [
-    google_project_service.compute,
-    google_project_service.container,
-  ]
 }
 
 resource "google_container_node_pool" "primary" {
@@ -44,5 +45,9 @@ resource "google_container_node_pool" "primary" {
     disk_type    = "pd-balanced"
     disk_size_gb = var.node_boot_disk_size_gb
     spot         = false
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
   }
 }
