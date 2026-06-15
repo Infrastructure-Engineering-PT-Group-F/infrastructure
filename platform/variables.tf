@@ -118,3 +118,51 @@ variable "services_cidr" {
   type        = string
   default     = "10.20.0.0/20"
 }
+
+variable "argocd_namespace" {
+  description = "Kubernetes namespace where ArgoCD is installed."
+  type        = string
+  default     = "argocd"
+}
+
+variable "argocd_chart_repository" {
+  description = "Helm repository URL for the ArgoCD chart."
+  type        = string
+  default     = "https://argoproj.github.io/argo-helm"
+}
+
+variable "argocd_chart_name" {
+  description = "Name of the ArgoCD Helm chart."
+  type        = string
+  default     = "argo-cd"
+}
+
+variable "argocd_chart_version" {
+  description = "Version of the ArgoCD Helm chart to install."
+  type        = string
+  default     = "9.5.17"
+}
+
+variable "argocd_root_application_name" {
+  description = "Name of the ArgoCD root Application created by Terraform."
+  type        = string
+  default     = "root"
+}
+
+variable "gitops_repo_url" {
+  description = "Git repository URL reconciled by the ArgoCD root Application."
+  type        = string
+  default     = "https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git"
+}
+
+variable "gitops_target_revision" {
+  description = "Git revision reconciled by the ArgoCD root Application."
+  type        = string
+  default     = "main"
+}
+
+variable "gitops_root_application_path" {
+  description = "Path in the GitOps repository containing child ArgoCD Applications."
+  type        = string
+  default     = "platform"
+}

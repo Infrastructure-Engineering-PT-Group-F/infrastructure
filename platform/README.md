@@ -2,9 +2,9 @@
 
 Main HashiCorp Terraform configuration for the platform infrastructure.
 
-This root module provisions the shared platform network and a zonal Google
+This root module provisions the shared platform network, a zonal Google
 Kubernetes Engine Standard cluster in `europe-west1-b` with one dedicated
-managed node pool.
+managed node pool, and the initial ArgoCD bootstrap.
 
 State is stored in the GCS bucket created by `bootstrap/` under
 `prefix = "platform"`. The `google` provider runs as the
@@ -25,6 +25,14 @@ see [`../README.md`](../README.md#remote-state).
 - Keeps the Kubernetes control plane endpoint publicly reachable.
 - Uses the platform VPC, platform subnet, and the `pods` and `services`
   secondary ranges for VPC-native IP allocation.
+- Installs ArgoCD into the `argocd` namespace with the Terraform Helm
+  provider.
+- Creates the initial ArgoCD root `Application` that points at the
+  `Infrastructure-Engineering-PT-Group-F/gitops` repository.
+
+Terraform only bootstraps ArgoCD. Long-term platform add-ons such as
+cert-manager, ExternalDNS, External Secrets Operator, Crossplane, ingress, and
+tenant resources are managed from the `gitops` repository after ArgoCD is up.
 
 ## Selected GKE Sizing
 
@@ -55,6 +63,8 @@ platform services while keeping the initial cost profile modest.
 4. `gcloud` is installed, authenticated, and pointed at the right project.
 5. The platform VPC and subnet are managed in this root module, so the cluster
    can attach directly to them during planning and apply.
+6. For ArgoCD bootstrap, the issue #9 GKE cluster has already been created and
+   is reachable from the operator running Terraform.
 
 ## Required Variables
 
@@ -75,6 +85,14 @@ committed.
 | `node_boot_disk_size_gb` | `40` | Balanced PD boot disk size per node. |
 | `cluster_deletion_protection` | `false` | Allows cluster deletion for environment cleanup. |
 | `master_ipv4_cidr_block` | `172.16.0.0/28` | Private control plane CIDR used for cluster-to-node communication. |
+| `argocd_namespace` | `argocd` | Namespace where ArgoCD is installed. |
+| `argocd_chart_repository` | `https://argoproj.github.io/argo-helm` | Helm repository for the ArgoCD chart. |
+| `argocd_chart_name` | `argo-cd` | ArgoCD Helm chart name. |
+| `argocd_chart_version` | `9.5.17` | Pinned ArgoCD chart version. |
+| `argocd_root_application_name` | `root` | Name of the Terraform-managed root ArgoCD Application. |
+| `gitops_repo_url` | `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git` | GitOps repository reconciled by ArgoCD. |
+| `gitops_target_revision` | `main` | Git revision reconciled by the root Application. |
+| `gitops_root_application_path` | `platform` | Path containing child ArgoCD Application manifests. |
 
 ## Network Layout
 
@@ -119,6 +137,46 @@ platform VPC:
 - `log_config` is enabled with `ERRORS_ONLY` to surface dropped egress
   cheaply.
 
+## ArgoCD Bootstrap
+
+Issue #11 builds on the GKE cluster from issue #9. The platform Terraform
+configuration bootstraps ArgoCD only after that cluster has been created.
+
+ArgoCD itself is installed with a Terraform-managed Helm release. The release
+creates the `argocd` namespace if needed, keeps `argocd-server` as a
+`ClusterIP` service, and does not create an ingress. Use local port-forwarding
+for initial validation:
+
+```sh
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+```
+
+The root ArgoCD `Application` is managed separately with
+`kubernetes_manifest` so reviewers can inspect the Helm installation and the
+GitOps bootstrap object independently. It points at
+`https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git`,
+revision `main`, path `platform`, and includes only `*/application.yaml`.
+
+### Staged Apply Caveat
+
+The ArgoCD root `Application` can be planned and applied only after ArgoCD has
+installed its `Application` CustomResourceDefinition. The Terraform
+`depends_on` relationship ensures apply ordering between the Helm release and
+the manifest resource, but it does not remove the Kubernetes provider's
+plan-time requirement that the CRD already exists.
+
+For a fresh environment, use staged applies:
+
+```sh
+terraform apply -target=google_container_cluster.platform -target=google_container_node_pool.primary
+terraform apply -target=helm_release.argocd
+terraform plan -out tfplan
+terraform apply tfplan
+```
+
+After the first bootstrap, normal plans can include the root Application as
+long as the cluster is reachable and the ArgoCD CRD still exists.
+
 ## Run
 
 ```sh
@@ -159,3 +217,6 @@ terraform validate                # verify configuration syntax and schema
 - GKE network or secondary range errors during planning/apply usually mean the
   platform VPC/subnet resources or their `pods`/`services` secondary ranges do
   not match what the cluster expects.
+- `kubernetes_manifest.root_application` planning errors about an unknown
+  `Application` kind mean ArgoCD's CRDs are not installed yet. Apply
+  `helm_release.argocd` first, then plan/apply the root Application.

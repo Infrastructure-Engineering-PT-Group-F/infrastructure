@@ -1,7 +1,7 @@
 # infrastructure
 
 Terraform IaC for the FH Burgenland Group F platform: VPC, GKE, IAM / Workload
-Identity, and platform addons. Provisions an empty but ready cluster. 
+Identity, and the initial ArgoCD bootstrap.
 Tenant/application logic lives in the `gitops/` repo.
 
 ## IaC tool
@@ -20,9 +20,9 @@ Each Terraform root module lives in its own folder so they are clearly separate:
   Creates the least-privilege `terraform-automation` service account and the
   GCS bucket holding remote Terraform state for both modules. See
   [bootstrap/README.md](bootstrap/README.md).
-- `platform/` — the main platform config (VPC, GKE, addons). Impersonates the
-  SA created by `bootstrap/` and stores state in the same bucket under a
-  separate `prefix`.
+- `platform/` — the main platform config (VPC, GKE, ArgoCD bootstrap).
+  Impersonates the SA created by `bootstrap/` and stores state in the same
+  bucket under a separate `prefix`.
 
 ## Provisioning identity
 
@@ -99,3 +99,18 @@ folder. Consult the per-module README for variables and the exact
 
 - `bootstrap/README.md` — first-time setup, SA + bucket creation, state migration.
 - `platform/README.md` — day-to-day platform provisioning.
+
+## ArgoCD and GitOps boundary
+
+The platform module installs ArgoCD with Helm and creates the initial root
+ArgoCD `Application` pointing at
+`Infrastructure-Engineering-PT-Group-F/gitops`. ArgoCD is not exposed publicly;
+use local port-forwarding for initial validation.
+
+The root `Application` is a Kubernetes custom resource, so ArgoCD must be
+installed before that object can be planned or applied. On a fresh environment,
+create the GKE cluster first, install the ArgoCD Helm release second, then
+plan/apply the root `Application` after the ArgoCD CRD exists.
+
+Long-term platform services and tenant/application resources belong in the
+`gitops` repository, not in Terraform.
