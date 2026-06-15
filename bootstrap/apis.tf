@@ -24,7 +24,6 @@ resource "google_project_service" "cloudresourcemanager" {
   disable_on_destroy = false
 }
 
-# Added for #8 — VPC + subnets in platform/ require Compute Engine API.
 resource "google_project_service" "compute" {
   project            = var.project_id
   service            = "compute.googleapis.com"
