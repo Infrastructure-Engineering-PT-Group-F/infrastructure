@@ -48,23 +48,22 @@ output "workload_identity_pool" {
   value       = google_container_cluster.platform.workload_identity_config[0].workload_pool
 }
 
-# Workload Identity service-account emails
-output "gitops_sa_email" {
-  description = "Email of the GitOps tool's GCP service account."
-  value       = google_service_account.gitops_gcp_sa.email
+output "argocd_namespace" {
+  description = "Kubernetes namespace where ArgoCD is installed."
+  value       = var.argocd_namespace
 }
 
-output "crossplane_sa_email" {
-  description = "Email of the Crossplane GCP service account."
-  value       = google_service_account.crossplane_gcp_sa.email
+output "argocd_helm_release_name" {
+  description = "Name of the Terraform-managed ArgoCD Helm release."
+  value       = helm_release.argocd.name
 }
 
-output "backend_app_sa_email" {
-  description = "Email of the backend application's GCP service account."
-  value       = google_service_account.backend_app_sa.email
+output "argocd_root_application_name" {
+  description = "Name of the Terraform-managed ArgoCD root Application."
+  value       = var.argocd_root_application_name
 }
 
-output "frontend_app_sa_email" {
-  description = "Email of the frontend application's GCP service account."
-  value       = google_service_account.frontend_app_sa.email
+output "argocd_port_forward_command" {
+  description = "Local command for temporary ArgoCD UI access without exposing ArgoCD publicly."
+  value       = "kubectl -n ${var.argocd_namespace} port-forward svc/argocd-server 8080:443"
 }
