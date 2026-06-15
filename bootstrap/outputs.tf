@@ -7,3 +7,8 @@ output "state_bucket_name" {
   description = "Name of the GCS bucket holding remote Terraform state."
   value       = google_storage_bucket.tfstate.name
 }
+
+output "github_actions_wif_provider" {
+  description = "Full resource name of the GitHub Actions WIF provider. Use as `workload_identity_provider` in google-github-actions/auth."
+  value       = google_iam_workload_identity_pool_provider.github_provider.name
+}

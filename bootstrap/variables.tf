@@ -25,7 +25,8 @@ variable "tf_sa_roles" {
   type        = list(string)
   default = [
     "roles/serviceusage.serviceUsageAdmin",
-    "roles/compute.networkAdmin", # added for #8 — VPC + subnets
+    "roles/compute.networkAdmin",    # added for #8 — VPC + subnets
+    "roles/iam.serviceAccountAdmin", # added for #10 — create platform/app GSAs + WI bindings
   ]
 }
 
