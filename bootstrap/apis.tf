@@ -1,4 +1,4 @@
-# APIs required to create and impersonate service accounts.
+# APIs required by bootstrap and the platform module.
 resource "google_project_service" "iam" {
   project            = var.project_id
   service            = "iam.googleapis.com"
@@ -28,4 +28,12 @@ resource "google_project_service" "compute" {
   project            = var.project_id
   service            = "compute.googleapis.com"
   disable_on_destroy = false
+}
+
+resource "google_project_service" "container" {
+  project            = var.project_id
+  service            = "container.googleapis.com"
+  disable_on_destroy = false
+
+  depends_on = [google_project_service.compute]
 }

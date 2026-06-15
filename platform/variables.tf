@@ -12,13 +12,13 @@ variable "tf_sa_account_id" {
 variable "region" {
   description = "Default GCP region for regional Google Cloud APIs used by the platform."
   type        = string
-  default     = "europe-west3"
+  default     = "europe-west1"
 }
 
 variable "zone" {
   description = "GCP zone for the zonal GKE Standard cluster."
   type        = string
-  default     = "europe-west3-a"
+  default     = "europe-west1-b"
 }
 
 variable "cluster_name" {
@@ -64,7 +64,13 @@ variable "node_boot_disk_size_gb" {
 variable "cluster_deletion_protection" {
   description = "Whether Terraform should prevent accidental deletion of the GKE cluster."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "master_ipv4_cidr_block" {
+  description = "CIDR block used by the GKE control plane for private cluster communication."
+  type        = string
+  default     = "172.16.0.0/28"
 }
 
 variable "vpc_name" {
