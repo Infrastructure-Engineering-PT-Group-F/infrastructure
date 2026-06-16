@@ -37,7 +37,10 @@ resource "google_container_node_pool" "primary" {
   location = google_container_cluster.platform.location
   cluster  = google_container_cluster.platform.name
 
-  node_count = var.node_count
+  autoscaling {
+    min_node_count = var.node_min_count
+    max_node_count = var.node_max_count
+  }
 
   node_config {
     machine_type = var.node_machine_type

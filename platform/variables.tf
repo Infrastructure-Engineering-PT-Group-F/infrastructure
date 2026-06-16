@@ -33,14 +33,25 @@ variable "node_pool_name" {
   default     = "primary-pool"
 }
 
-variable "node_count" {
-  description = "Number of worker nodes in the managed node pool."
+variable "node_min_count" {
+  description = "Minimum number of worker nodes per zone when the managed node pool autoscales."
   type        = number
-  default     = 3
+  default     = 1
 
   validation {
-    condition     = var.node_count >= 1
-    error_message = "node_count must be at least 1."
+    condition     = var.node_min_count >= 1
+    error_message = "node_min_count must be at least 1."
+  }
+}
+
+variable "node_max_count" {
+  description = "Maximum number of worker nodes per zone when the managed node pool autoscales."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.node_max_count >= var.node_min_count
+    error_message = "node_max_count must be greater than or equal to node_min_count."
   }
 }
 

@@ -69,7 +69,8 @@ committed.
 | `zone` | `europe-west1-b` | Zonal GKE cluster location. |
 | `cluster_name` | `group-f-platform-gke` | GKE cluster name. |
 | `node_pool_name` | `primary-pool` | Dedicated managed node pool name. |
-| `node_count` | `3` | Worker node count. |
+| `node_min_count` | `1` | Minimum worker nodes per zone when autoscaling. |
+| `node_max_count` | `5` | Maximum worker nodes per zone when autoscaling. |
 | `node_machine_type` | `n2-standard-2` | Worker machine type. |
 | `node_boot_disk_size_gb` | `40` | Balanced PD boot disk size per node. |
 | `cluster_deletion_protection` | `false` | Allows cluster deletion for environment cleanup. |
