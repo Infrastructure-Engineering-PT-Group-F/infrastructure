@@ -31,6 +31,12 @@ The `platform/` module runs as the `terraform-automation` SA via
 `roles/iam.serviceAccountTokenCreator` on the SA mint short-lived tokens. Roles
 on the SA are granted incrementally per issue (least privilege).
 
+## Access and permission model
+
+For the full access and permission model across GitHub, Google Cloud IAM,
+Kubernetes RBAC, Workload Identity and OIDC, and lecturer access, see
+[docs/access-model.md](docs/access-model.md).
+
 ## Remote state
 
 State for both root modules lives in the GCS bucket created by `bootstrap/`,
