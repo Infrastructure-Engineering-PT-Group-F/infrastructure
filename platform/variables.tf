@@ -27,6 +27,17 @@ variable "cluster_name" {
   default     = "group-f-platform-gke"
 }
 
+variable "release_channel" {
+  description = "GKE release channel governing control plane and node auto-upgrade cadence."
+  type        = string
+  default     = "REGULAR"
+
+  validation {
+    condition     = contains(["RAPID", "REGULAR", "STABLE"], var.release_channel)
+    error_message = "release_channel must be one of RAPID, REGULAR, or STABLE."
+  }
+}
+
 variable "node_pool_name" {
   description = "Name of the dedicated managed node pool for platform worker nodes."
   type        = string
