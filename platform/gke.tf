@@ -9,6 +9,10 @@ resource "google_container_cluster" "platform" {
 
   deletion_protection = var.cluster_deletion_protection
 
+  release_channel {
+    channel = var.release_channel
+  }
+
   remove_default_node_pool = true
   initial_node_count       = 1
 
