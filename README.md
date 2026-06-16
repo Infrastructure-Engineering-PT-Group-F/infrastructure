@@ -81,6 +81,10 @@ local state (the bucket doesn't exist yet). After that one apply, state is
 migrated into the bucket (`terraform init -migrate-state`). This is the only
 documented bootstrap glue-point.
 
+For the full catalogue of manual steps that sit outside IaC and GitOps (GitHub
+org and GCP project creation, billing, domain delegation, operator and lecturer
+access), see [docs/bootstrap-exceptions.md](docs/bootstrap-exceptions.md).
+
 ## Operating the modules
 
 There's no Terraform at the repo root — each module is run from its own
