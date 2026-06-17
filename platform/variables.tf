@@ -143,6 +143,18 @@ variable "argocd_chart_version" {
   default     = "9.5.17"
 }
 
+variable "argocd_apps_chart_name" {
+  description = "Name of the Helm chart used to install the ArgoCD root App-of-Apps."
+  type        = string
+  default     = "argocd-apps"
+}
+
+variable "argocd_apps_chart_version" {
+  description = "Version of the argocd-apps Helm chart to install."
+  type        = string
+  default     = "2.0.5"
+}
+
 variable "argocd_root_application_name" {
   description = "Name of the ArgoCD root Application created by Terraform."
   type        = string
