@@ -27,8 +27,8 @@ see [`../README.md`](../README.md#remote-state).
   secondary ranges for VPC-native IP allocation.
 - Installs ArgoCD into the `argocd` namespace with the Terraform Helm
   provider.
-- Creates the initial ArgoCD root `Application` that points at the
-  `Infrastructure-Engineering-PT-Group-F/gitops` repository.
+- Installs the initial ArgoCD root App-of-Apps through the `argocd-apps` Helm
+  chart.
 
 Terraform only bootstraps ArgoCD. Long-term platform add-ons such as
 cert-manager, ExternalDNS, External Secrets Operator, Crossplane, ingress, and
@@ -63,8 +63,8 @@ platform services while keeping the initial cost profile modest.
 4. `gcloud` is installed, authenticated, and pointed at the right project.
 5. The platform VPC and subnet are managed in this root module, so the cluster
    can attach directly to them during planning and apply.
-6. For ArgoCD bootstrap, the issue #9 GKE cluster has already been created and
-   is reachable from the operator running Terraform.
+6. For ArgoCD bootstrap, the GKE cluster is reachable from the operator
+   running Terraform.
 
 ## Required Variables
 
@@ -88,6 +88,8 @@ committed.
 | `argocd_chart_repository` | `https://argoproj.github.io/argo-helm` | Helm repository for the ArgoCD chart. |
 | `argocd_chart_name` | `argo-cd` | ArgoCD Helm chart name. |
 | `argocd_chart_version` | `9.5.17` | Pinned ArgoCD chart version. |
+| `argocd_apps_chart_name` | `argocd-apps` | Helm chart used to install the ArgoCD root App-of-Apps. |
+| `argocd_apps_chart_version` | `2.0.5` | Pinned argocd-apps chart version. |
 | `argocd_root_application_name` | `root` | Name of the Terraform-managed root ArgoCD Application. |
 | `gitops_repo_url` | `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git` | GitOps repository reconciled by ArgoCD. |
 | `gitops_target_revision` | `main` | Git revision reconciled by the root Application. |
@@ -138,9 +140,6 @@ platform VPC:
 
 ## ArgoCD Bootstrap
 
-Issue #11 builds on the GKE cluster from issue #9. The platform Terraform
-configuration bootstraps ArgoCD only after that cluster has been created.
-
 ArgoCD itself is installed with a Terraform-managed Helm release. The release
 creates the `argocd` namespace if needed, keeps `argocd-server` as a
 `ClusterIP` service, and does not create an ingress. Use local port-forwarding
@@ -150,31 +149,14 @@ for initial validation:
 kubectl -n argocd port-forward svc/argocd-server 8080:443
 ```
 
-The root ArgoCD `Application` is managed separately with
-`kubernetes_manifest` so reviewers can inspect the Helm installation and the
-GitOps bootstrap object independently. It points at
+After ArgoCD is installed, Terraform installs a second Helm release using the
+`argocd-apps` chart. That release creates the root App-of-Apps and depends on
+the main ArgoCD Helm release, keeping the bootstrap close to a single Terraform
+apply while avoiding plan-time dependency on ArgoCD custom resource schemas.
+
+The root Application points at
 `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git`,
 revision `main`, path `platform`, and includes only `*/application.yaml`.
-
-### Staged Apply Caveat
-
-The ArgoCD root `Application` can be planned and applied only after ArgoCD has
-installed its `Application` CustomResourceDefinition. The Terraform
-`depends_on` relationship ensures apply ordering between the Helm release and
-the manifest resource, but it does not remove the Kubernetes provider's
-plan-time requirement that the CRD already exists.
-
-For a fresh environment, use staged applies:
-
-```sh
-terraform apply -target=google_container_cluster.platform -target=google_container_node_pool.primary
-terraform apply -target=helm_release.argocd
-terraform plan -out tfplan
-terraform apply tfplan
-```
-
-After the first bootstrap, normal plans can include the root Application as
-long as the cluster is reachable and the ArgoCD CRD still exists.
 
 ## Run
 
@@ -216,6 +198,3 @@ terraform validate                # verify configuration syntax and schema
 - GKE network or secondary range errors during planning/apply usually mean the
   platform VPC/subnet resources or their `pods`/`services` secondary ranges do
   not match what the cluster expects.
-- `kubernetes_manifest.root_application` planning errors about an unknown
-  `Application` kind mean ArgoCD's CRDs are not installed yet. Apply
-  `helm_release.argocd` first, then plan/apply the root Application.

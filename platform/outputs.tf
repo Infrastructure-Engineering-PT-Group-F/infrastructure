@@ -58,6 +58,11 @@ output "argocd_helm_release_name" {
   value       = helm_release.argocd.name
 }
 
+output "argocd_apps_helm_release_name" {
+  description = "Name of the Terraform-managed argocd-apps Helm release."
+  value       = helm_release.argocd_apps.name
+}
+
 output "argocd_root_application_name" {
   description = "Name of the Terraform-managed ArgoCD root Application."
   value       = var.argocd_root_application_name

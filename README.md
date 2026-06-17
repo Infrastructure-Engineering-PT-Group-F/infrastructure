@@ -92,15 +92,10 @@ folder. Consult the per-module README for variables and the exact
 
 ## ArgoCD and GitOps boundary
 
-The platform module installs ArgoCD with Helm and creates the initial root
-ArgoCD `Application` pointing at
-`Infrastructure-Engineering-PT-Group-F/gitops`. ArgoCD is not exposed publicly;
-use local port-forwarding for initial validation.
-
-The root `Application` is a Kubernetes custom resource, so ArgoCD must be
-installed before that object can be planned or applied. On a fresh environment,
-create the GKE cluster first, install the ArgoCD Helm release second, then
-plan/apply the root `Application` after the ArgoCD CRD exists.
+The platform module installs ArgoCD with Helm and then installs the initial
+root App-of-Apps through the `argocd-apps` Helm chart. The root Application
+points at `Infrastructure-Engineering-PT-Group-F/gitops`. ArgoCD is not
+exposed publicly; use local port-forwarding for initial validation.
 
 Long-term platform services and tenant/application resources belong in the
 `gitops` repository, not in Terraform.
