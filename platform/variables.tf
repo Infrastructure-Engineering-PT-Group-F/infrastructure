@@ -89,6 +89,12 @@ variable "cluster_deletion_protection" {
   default     = false
 }
 
+variable "delegated_dns_managed_zone_name" {
+  description = "Cloud DNS managed zone name serving gcp.ajdininfrastructure.lol."
+  type        = string
+  default     = "gcp-ajdininfrastructure-lol"
+}
+
 variable "master_ipv4_cidr_block" {
   description = "CIDR block used by the GKE control plane for private cluster communication."
   type        = string

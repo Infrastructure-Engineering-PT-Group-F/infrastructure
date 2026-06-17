@@ -19,6 +19,8 @@ see [`../README.md`](../README.md#remote-state).
 - Creates subnet secondary IP ranges named `pods` and `services`.
 - Creates a zonal GKE Standard cluster in `europe-west1-b`.
 - Removes the default node pool and creates a dedicated managed node pool.
+- Creates the public delegated Cloud DNS managed zone
+  `gcp.ajdininfrastructure.lol.` for platform add-ons.
 - Enables Workload Identity with the standard
   `<project_id>.svc.id.goog` workload identity pool.
 - Keeps worker nodes private, so they do not receive public IP addresses.
@@ -57,7 +59,8 @@ platform services while keeping the initial cost profile modest.
 1. `bootstrap/` has been applied so the remote state bucket and
    `terraform-automation` service account exist.
 2. The bootstrap module has enabled the required Google Cloud APIs, including
-   `compute.googleapis.com` and `container.googleapis.com`.
+   `compute.googleapis.com`, `container.googleapis.com`, and
+   `dns.googleapis.com`.
 3. Your user is listed in `operator_members` for `bootstrap/`, so you hold
    `roles/iam.serviceAccountTokenCreator` on the service account.
 4. `gcloud` is installed, authenticated, and pointed at the right project.
@@ -84,6 +87,7 @@ committed.
 | `node_machine_type` | `n2-standard-2` | Worker machine type. |
 | `node_boot_disk_size_gb` | `40` | Balanced PD boot disk size per node. |
 | `cluster_deletion_protection` | `false` | Allows cluster deletion for environment cleanup. |
+| `delegated_dns_managed_zone_name` | `gcp-ajdininfrastructure-lol` | Public Cloud DNS managed zone for `gcp.ajdininfrastructure.lol.`. |
 | `master_ipv4_cidr_block` | `172.16.0.0/28` | Private control plane CIDR used for cluster-to-node communication. |
 | `argocd_namespace` | `argocd` | Namespace where ArgoCD is installed. |
 | `argocd_chart_repository` | `https://argoproj.github.io/argo-helm` | Helm repository for the ArgoCD chart. |
@@ -125,6 +129,15 @@ Notes:
 - The GKE cluster uses private nodes and reserves
   `master_ipv4_cidr_block` for control plane communication while keeping the
   control plane endpoint publicly reachable.
+
+## Delegated DNS Zone
+
+`dns.tf` manages the public Cloud DNS zone for
+`gcp.ajdininfrastructure.lol.`. The zone name defaults to
+`gcp-ajdininfrastructure-lol`, and outputs expose the zone name, DNS name, and
+authoritative name servers so the domain delegation can be documented outside
+Terraform. ExternalDNS and cert-manager receive Workload Identity service
+accounts with `roles/dns.admin` scoped to this managed zone only.
 
 ## Outbound Internet (Cloud NAT)
 

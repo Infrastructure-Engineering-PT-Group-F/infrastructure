@@ -48,6 +48,22 @@ output "workload_identity_pool" {
   value       = google_container_cluster.platform.workload_identity_config[0].workload_pool
 }
 
+output "delegated_dns_zone_name" {
+  description = "Name of the delegated Cloud DNS managed zone."
+  value       = google_dns_managed_zone.delegated_platform_zone.name
+}
+
+output "delegated_dns_name" {
+  description = "DNS name served by the delegated Cloud DNS managed zone."
+  value       = google_dns_managed_zone.delegated_platform_zone.dns_name
+}
+
+output "delegated_dns_name_servers" {
+  description = "Authoritative name servers for registrar delegation."
+  value       = google_dns_managed_zone.delegated_platform_zone.name_servers
+}
+
+# Workload Identity service-account emails
 output "gitops_sa_email" {
   description = "Email of the GitOps tool's GCP service account."
   value       = google_service_account.gitops_gcp_sa.email
@@ -56,6 +72,16 @@ output "gitops_sa_email" {
 output "crossplane_sa_email" {
   description = "Email of the Crossplane GCP service account."
   value       = google_service_account.crossplane_gcp_sa.email
+}
+
+output "external_dns_sa_email" {
+  description = "Email of the ExternalDNS GCP service account."
+  value       = google_service_account.external_dns_sa.email
+}
+
+output "cert_manager_dns01_sa_email" {
+  description = "Email of the cert-manager DNS-01 GCP service account."
+  value       = google_service_account.cert_manager_dns01_sa.email
 }
 
 output "backend_app_sa_email" {
