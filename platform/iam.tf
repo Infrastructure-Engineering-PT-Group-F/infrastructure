@@ -30,6 +30,53 @@ resource "google_service_account_iam_binding" "crossplane_wi_binding" {
 }
 
 # -------------------------------------------------------------------------
+# Platform Add-on DNS Identities
+# -------------------------------------------------------------------------
+resource "google_service_account" "external_dns_sa" {
+  project      = var.project_id
+  account_id   = "external-dns-sa"
+  display_name = "ExternalDNS Workload Identity SA"
+  description  = "Identity for ExternalDNS to manage records in the delegated Cloud DNS zone."
+}
+
+resource "google_service_account_iam_binding" "external_dns_wi_binding" {
+  service_account_id = google_service_account.external_dns_sa.name
+  role               = "roles/iam.workloadIdentityUser"
+  members = [
+    "serviceAccount:${var.project_id}.svc.id.goog[external-dns/external-dns]"
+  ]
+}
+
+resource "google_dns_managed_zone_iam_member" "external_dns_admin" {
+  project      = var.project_id
+  managed_zone = google_dns_managed_zone.delegated_platform_zone.name
+  role         = "roles/dns.admin"
+  member       = "serviceAccount:${google_service_account.external_dns_sa.email}"
+}
+
+resource "google_service_account" "cert_manager_dns01_sa" {
+  project      = var.project_id
+  account_id   = "cert-manager-dns01-sa"
+  display_name = "cert-manager DNS-01 Workload Identity SA"
+  description  = "Identity for cert-manager to complete DNS-01 challenges in the delegated Cloud DNS zone."
+}
+
+resource "google_service_account_iam_binding" "cert_manager_dns01_wi_binding" {
+  service_account_id = google_service_account.cert_manager_dns01_sa.name
+  role               = "roles/iam.workloadIdentityUser"
+  members = [
+    "serviceAccount:${var.project_id}.svc.id.goog[cert-manager/cert-manager]"
+  ]
+}
+
+resource "google_dns_managed_zone_iam_member" "cert_manager_dns01_admin" {
+  project      = var.project_id
+  managed_zone = google_dns_managed_zone.delegated_platform_zone.name
+  role         = "roles/dns.admin"
+  member       = "serviceAccount:${google_service_account.cert_manager_dns01_sa.email}"
+}
+
+# -------------------------------------------------------------------------
 # Application Workload Identities
 # -------------------------------------------------------------------------
 resource "google_service_account" "backend_app_sa" {

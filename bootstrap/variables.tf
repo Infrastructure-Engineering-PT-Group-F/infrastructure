@@ -29,6 +29,7 @@ variable "tf_sa_roles" {
     "roles/iam.serviceAccountAdmin",
     "roles/container.admin",
     "roles/iam.serviceAccountUser",
+    "roles/dns.admin", # Manages the delegated Cloud DNS zone and its IAM bindings.
   ]
 }
 
