@@ -48,6 +48,26 @@ output "workload_identity_pool" {
   value       = google_container_cluster.platform.workload_identity_config[0].workload_pool
 }
 
+output "gitops_sa_email" {
+  description = "Email of the GitOps tool's GCP service account."
+  value       = google_service_account.gitops_gcp_sa.email
+}
+
+output "crossplane_sa_email" {
+  description = "Email of the Crossplane GCP service account."
+  value       = google_service_account.crossplane_gcp_sa.email
+}
+
+output "backend_app_sa_email" {
+  description = "Email of the backend application's GCP service account."
+  value       = google_service_account.backend_app_sa.email
+}
+
+output "frontend_app_sa_email" {
+  description = "Email of the frontend application's GCP service account."
+  value       = google_service_account.frontend_app_sa.email
+}
+
 output "argocd_namespace" {
   description = "Kubernetes namespace where ArgoCD is installed."
   value       = var.argocd_namespace
