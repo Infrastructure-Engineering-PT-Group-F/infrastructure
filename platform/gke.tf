@@ -2,6 +2,11 @@ locals {
   workload_identity_pool = "${var.project_id}.svc.id.goog"
 }
 
+data "google_service_account" "gke_node_pool" {
+  project    = var.project_id
+  account_id = var.gke_node_pool_sa_account_id
+}
+
 resource "google_container_cluster" "platform" {
   project  = var.project_id
   name     = var.cluster_name
@@ -52,6 +57,11 @@ resource "google_container_node_pool" "primary" {
     disk_type    = "pd-balanced"
     disk_size_gb = var.node_boot_disk_size_gb
     spot         = false
+
+    service_account = data.google_service_account.gke_node_pool.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform",
+    ]
 
     workload_metadata_config {
       mode = "GKE_METADATA"

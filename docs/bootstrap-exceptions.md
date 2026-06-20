@@ -32,6 +32,7 @@ The steps in the next section are the only ones performed by hand.
 | 5 | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                     | Once, during the bootstrap apply                               | Operator              |
 | 6 | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                               | Before evaluation and handover                                 | Project lead          |
 | 7 | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.               | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets | Operator              |
+| 8 | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator. | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool | Operator              |
 
 ## Detail
 
@@ -109,6 +110,30 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 This grants read access to Secret Manager secret payloads without creating a
 service account key, storing plaintext secrets, or committing credentials to the
 repository.
+
+### 8. GKE node service account minimal role grant
+
+The bootstrap module creates the dedicated GKE node-pool Google service account.
+The platform module assigns that account to the managed node pool instead of
+using the Compute Engine default service account. Terraform automation
+intentionally has no broad project IAM administration rights, so a human
+operator grants the minimal GKE node role at the project level.
+
+Run this after the bootstrap Terraform apply has created the GSA, and before
+the platform Terraform apply creates or updates the node pool:
+
+```sh
+PROJECT_ID=<PROJECT_ID>
+NODE_GSA="$(terraform -chdir=bootstrap output -raw gke_node_pool_sa_email)"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${NODE_GSA}" \
+  --role="roles/container.defaultNodeServiceAccount"
+```
+
+This creates no service-account key, plaintext secret, or credential. It only
+grants the dedicated node service account the minimal role GKE requires for
+node operation.
 
 ## Related Documentation
 

@@ -43,6 +43,11 @@ output "node_pool_name" {
   value       = google_container_node_pool.primary.name
 }
 
+output "gke_node_pool_sa_email" {
+  description = "Email of the dedicated GKE node-pool service account."
+  value       = data.google_service_account.gke_node_pool.email
+}
+
 output "workload_identity_pool" {
   description = "Workload Identity pool configured for Kubernetes service accounts."
   value       = google_container_cluster.platform.workload_identity_config[0].workload_pool
