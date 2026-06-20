@@ -31,6 +31,7 @@ The steps in the next section are the only ones performed by hand.
 | 4 | Initial operator access for the seed                         | The bootstrap module creates the least-privilege `terraform-automation` service account, so before it exists a human operator must run the seed with their own elevated credentials. | Once, immediately before the bootstrap apply                   | Operator              |
 | 5 | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                     | Once, during the bootstrap apply                               | Operator              |
 | 6 | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                               | Before evaluation and handover                                 | Project lead          |
+| 7 | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.               | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets | Operator              |
 
 ## Detail
 
@@ -82,6 +83,32 @@ Lecturer `@muhlba91` receives repository admin on the GitHub side and
 `cluster-admin` on the Kubernetes side so the work can be reviewed and operated.
 At present both are applied manually. Codifying the cluster-admin binding as IaC
 or GitOps is a possible later improvement that would remove this exception.
+
+### 7. External Secrets Secret Manager accessor grant
+
+External Secrets Operator authenticates to Google Cloud through GKE Workload
+Identity. The platform Terraform creates the Google service account and binds
+the Kubernetes service account to it, but the project-level
+`roles/secretmanager.secretAccessor` grant is applied manually because the
+Terraform automation service account intentionally does not have broad project
+IAM administration.
+
+Run this after the platform Terraform apply has created the External Secrets
+Google service account, and before External Secrets Operator is expected to read
+Google Secret Manager secrets:
+
+```sh
+PROJECT_ID=<PROJECT_ID>
+EXTERNAL_SECRETS_GSA="$(terraform -chdir=platform output -raw external_secrets_sa_email)"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${EXTERNAL_SECRETS_GSA}" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+This grants read access to Secret Manager secret payloads without creating a
+service account key, storing plaintext secrets, or committing credentials to the
+repository.
 
 ## Related Documentation
 
