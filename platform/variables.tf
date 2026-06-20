@@ -113,6 +113,12 @@ variable "vpc_name" {
   default     = "vpc-platform"
 }
 
+variable "private_services_access_cidr" {
+  description = "Reserved RFC1918 CIDR range for Google Private Services Access, used by Cloud SQL private IP."
+  type        = string
+  default     = "10.30.0.0/16"
+}
+
 variable "subnet_cidr" {
   description = "Primary CIDR for the GKE node subnet."
   type        = string

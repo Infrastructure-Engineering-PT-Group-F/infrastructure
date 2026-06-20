@@ -33,6 +33,7 @@ The steps in the next section are the only ones performed by hand.
 | 6 | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                               | Before evaluation and handover                                 | Project lead          |
 | 7 | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.               | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets | Operator              |
 | 8 | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator. | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool | Operator              |
+| 9 | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.        | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources | Operator              |
 
 ## Detail
 
@@ -134,6 +135,52 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 This creates no service-account key, plaintext secret, or credential. It only
 grants the dedicated node service account the minimal role GKE requires for
 node operation.
+
+### 9. Crossplane Cloud SQL admin grant
+
+Crossplane provider-gcp authenticates to Google Cloud through GKE Workload
+Identity. The platform Terraform creates the `crossplane-sa` Google service
+account and binds the Kubernetes service account to it, but the project-level
+`roles/cloudsql.admin` grant is applied manually because Terraform automation
+intentionally does not have broad project IAM administration.
+
+Run this after the platform Terraform apply has created the Crossplane Google
+service account, and before GitOps provider-gcp is expected to provision Cloud
+SQL resources:
+
+```sh
+PROJECT_ID=<PROJECT_ID>
+CROSSPLANE_GSA="$(terraform -chdir=platform output -raw crossplane_sa_email)"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${CROSSPLANE_GSA}" \
+  --role="roles/cloudsql.admin"
+```
+
+This uses GKE Workload Identity and creates no static service-account key,
+token, plaintext secret, credential file, or kubeconfig file. The grant must be
+completed before GitOps provider-gcp provisions Cloud SQL. The Service
+Networking service agent must not be preemptively granted custom roles;
+troubleshoot that identity only if the private connection fails in the real GCP
+environment.
+
+The provisioning order for Cloud SQL private connectivity is:
+
+1. Bootstrap apply enables `sqladmin.googleapis.com` and
+   `servicenetworking.googleapis.com`.
+2. Platform apply creates the VPC, reserved private-services range, VPC peering
+   connection, and `crossplane-sa`.
+3. Operator manually grants `roles/cloudsql.admin` to `crossplane-sa`.
+4. GitOps issue #38 deploys and validates provider-gcp.
+5. GitOps issue #37 defines and tests tenant Cloud SQL resources.
+6. A Cloud SQL smoke test uses the smallest short-lived configuration and is
+   deleted immediately after validation.
+
+Because `bootstrap/` and `platform/` are separate Terraform root modules, the
+platform Private Services Access resources do not model a cross-module
+`depends_on` edge to the bootstrap API resources. The reserved range remains
+configurable so operators can review live VPC routes or future on-prem ranges
+before apply.
 
 ## Related Documentation
 
