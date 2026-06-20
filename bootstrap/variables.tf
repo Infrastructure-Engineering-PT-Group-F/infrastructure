@@ -20,6 +20,12 @@ variable "tf_sa_account_id" {
   default     = "terraform-automation"
 }
 
+variable "gke_node_pool_sa_account_id" {
+  description = "Account ID for the dedicated GKE node-pool service account."
+  type        = string
+  default     = "gke-node-pool-sa"
+}
+
 variable "tf_sa_roles" {
   description = "Project roles granted to the Terraform SA. Grown per issue (least privilege)."
   type        = list(string)

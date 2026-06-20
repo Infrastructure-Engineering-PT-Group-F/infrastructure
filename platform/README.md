@@ -19,6 +19,7 @@ see [`../README.md`](../README.md#remote-state).
 - Creates subnet secondary IP ranges named `pods` and `services`.
 - Creates a zonal GKE Standard cluster in `europe-west1-b`.
 - Removes the default node pool and creates a dedicated managed node pool.
+- Assigns the node pool a dedicated bootstrap-created Google service account.
 - Creates the public delegated Cloud DNS managed zone
   `gcp.ajdininfrastructure.lol.` for platform add-ons.
 - Enables Workload Identity with the standard
@@ -56,17 +57,21 @@ platform services while keeping the initial cost profile modest.
 
 ## Prerequisites
 
-1. `bootstrap/` has been applied so the remote state bucket and
-   `terraform-automation` service account exist.
+1. `bootstrap/` has been applied so the remote state bucket,
+   `terraform-automation` service account, and dedicated GKE node-pool service
+   account exist.
 2. The bootstrap module has enabled the required Google Cloud APIs, including
-   `compute.googleapis.com`, `container.googleapis.com`, and
-   `dns.googleapis.com`.
-3. Your user is listed in `operator_members` for `bootstrap/`, so you hold
+   `compute.googleapis.com`, `container.googleapis.com`, `dns.googleapis.com`,
+   `logging.googleapis.com`, and `monitoring.googleapis.com`.
+3. The dedicated GKE node-pool service account has the manual
+   `roles/container.defaultNodeServiceAccount` grant described in
+   [`../docs/bootstrap-exceptions.md`](../docs/bootstrap-exceptions.md).
+4. Your user is listed in `operator_members` for `bootstrap/`, so you hold
    `roles/iam.serviceAccountTokenCreator` on the service account.
-4. `gcloud` is installed, authenticated, and pointed at the right project.
-5. The platform VPC and subnet are managed in this root module, so the cluster
+5. `gcloud` is installed, authenticated, and pointed at the right project.
+6. The platform VPC and subnet are managed in this root module, so the cluster
    can attach directly to them during planning and apply.
-6. For ArgoCD bootstrap, the GKE cluster is reachable from the operator
+7. For ArgoCD bootstrap, the GKE cluster is reachable from the operator
    running Terraform.
 
 ## Required Variables
@@ -78,6 +83,7 @@ committed.
 |---|---|---|
 | `project_id` | required | Same project as `bootstrap/`. |
 | `tf_sa_account_id` | `terraform-automation` | Must match `bootstrap/`. |
+| `gke_node_pool_sa_account_id` | `gke-node-pool-sa` | Must match `bootstrap/`. |
 | `region` | `europe-west1` | Provider default region. |
 | `zone` | `europe-west1-b` | Zonal GKE cluster location. |
 | `cluster_name` | `group-f-platform-gke` | GKE cluster name. |
@@ -171,6 +177,16 @@ apply while avoiding plan-time dependency on ArgoCD custom resource schemas.
 The root Application points at
 `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git`,
 revision `main`, path `platform`, and includes only `*/application.yaml`.
+
+## Provisioning Order
+
+Provisioning order is: bootstrap apply → manual node-GSA role grant → platform
+apply.
+
+The manual node-GSA role grant must happen after bootstrap creates the
+dedicated GKE node-pool service account and before platform creates or updates
+the managed node pool. It creates no service-account key, plaintext secret, or
+credential.
 
 ## Run
 

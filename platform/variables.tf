@@ -9,6 +9,12 @@ variable "tf_sa_account_id" {
   default     = "terraform-automation"
 }
 
+variable "gke_node_pool_sa_account_id" {
+  description = "Account ID of the dedicated GKE node-pool service account created by the bootstrap module."
+  type        = string
+  default     = "gke-node-pool-sa"
+}
+
 variable "region" {
   description = "Default GCP region for regional Google Cloud APIs used by the platform."
   type        = string

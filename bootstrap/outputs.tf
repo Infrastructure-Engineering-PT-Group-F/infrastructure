@@ -3,6 +3,11 @@ output "terraform_service_account_email" {
   value       = google_service_account.terraform.email
 }
 
+output "gke_node_pool_sa_email" {
+  description = "Email of the dedicated GKE node-pool service account."
+  value       = google_service_account.gke_node_pool.email
+}
+
 output "state_bucket_name" {
   description = "Name of the GCS bucket holding remote Terraform state."
   value       = google_storage_bucket.tfstate.name
