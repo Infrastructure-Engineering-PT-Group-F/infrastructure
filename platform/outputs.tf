@@ -3,6 +3,16 @@ output "vpc_self_link" {
   value       = google_compute_network.platform.self_link
 }
 
+output "private_services_access_range_name" {
+  description = "Name of the reserved Private Services Access range."
+  value       = google_compute_global_address.private_services_access.name
+}
+
+output "private_services_access_cidr" {
+  description = "CIDR reserved for Google Private Services Access."
+  value       = var.private_services_access_cidr
+}
+
 output "subnet_self_link" {
   description = "Self-link of the platform subnet."
   value       = google_compute_subnetwork.platform.self_link
