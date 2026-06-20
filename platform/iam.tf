@@ -29,6 +29,21 @@ resource "google_service_account_iam_binding" "crossplane_wi_binding" {
   ]
 }
 
+resource "google_service_account" "external_secrets_sa" {
+  project      = var.project_id
+  account_id   = "external-secrets-sa"
+  display_name = "External Secrets Operator Workload Identity SA"
+  description  = "Identity for External Secrets Operator to read Google Secret Manager secrets through GKE Workload Identity."
+}
+
+resource "google_service_account_iam_binding" "external_secrets_wi_binding" {
+  service_account_id = google_service_account.external_secrets_sa.name
+  role               = "roles/iam.workloadIdentityUser"
+  members = [
+    "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
+  ]
+}
+
 # -------------------------------------------------------------------------
 # Platform Add-on DNS Identities
 # -------------------------------------------------------------------------

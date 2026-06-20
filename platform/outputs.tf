@@ -84,6 +84,11 @@ output "cert_manager_dns01_sa_email" {
   value       = google_service_account.cert_manager_dns01_sa.email
 }
 
+output "external_secrets_sa_email" {
+  description = "Email of the External Secrets Operator GCP service account."
+  value       = google_service_account.external_secrets_sa.email
+}
+
 output "backend_app_sa_email" {
   description = "Email of the backend application's GCP service account."
   value       = google_service_account.backend_app_sa.email
