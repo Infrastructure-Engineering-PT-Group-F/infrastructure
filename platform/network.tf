@@ -21,6 +21,7 @@ resource "google_service_networking_connection" "private_services_access" {
   network                 = google_compute_network.platform.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_services_access.name]
+  deletion_policy         = "ABANDON"
 }
 
 resource "google_compute_subnetwork" "platform" {
