@@ -192,7 +192,13 @@ variable "gitops_target_revision" {
 }
 
 variable "gitops_root_application_path" {
-  description = "Path in the GitOps repository containing child ArgoCD Applications."
+  description = "Root path in the GitOps repository scanned by the root ArgoCD Application."
   type        = string
-  default     = "platform"
+  default     = "."
+}
+
+variable "gitops_root_application_include" {
+  description = "Glob pattern limiting the root ArgoCD Application to child Application manifests."
+  type        = string
+  default     = "{platform/*/application.yaml,catalog/application.yaml,catalog/*/application.yaml,tenants/application.yaml,tenants/*/application.yaml}"
 }
