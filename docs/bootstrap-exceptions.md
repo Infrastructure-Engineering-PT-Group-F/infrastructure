@@ -171,8 +171,8 @@ The provisioning order for Cloud SQL private connectivity is:
 2. Platform apply creates the VPC, reserved private-services range, VPC peering
    connection, and `crossplane-sa`.
 3. Operator manually grants `roles/cloudsql.admin` to `crossplane-sa`.
-4. GitOps issue #38 deploys and validates provider-gcp.
-5. GitOps issue #37 defines and tests tenant Cloud SQL resources.
+4. GitOps deploys and validates the Crossplane GCP provider.
+5. Tenant Cloud SQL resources are defined and tested through the platform catalog.
 6. A Cloud SQL smoke test uses the smallest short-lived configuration and is
    deleted immediately after validation.
 
