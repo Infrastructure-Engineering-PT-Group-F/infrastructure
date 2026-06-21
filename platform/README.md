@@ -104,7 +104,8 @@ committed.
 | `argocd_root_application_name` | `root` | Name of the Terraform-managed root ArgoCD Application. |
 | `gitops_repo_url` | `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git` | GitOps repository reconciled by ArgoCD. |
 | `gitops_target_revision` | `main` | Git revision reconciled by the root Application. |
-| `gitops_root_application_path` | `platform` | Path containing child ArgoCD Application manifests. |
+| `gitops_root_application_path` | `.` | Root path scanned for child ArgoCD Application manifests. |
+| `gitops_root_application_include` | `{platform/*/application.yaml,catalog/application.yaml,catalog/*/application.yaml,tenants/application.yaml,tenants/*/application.yaml}` | Include glob for child ArgoCD Application manifests. |
 
 ## Network Layout
 
@@ -176,7 +177,10 @@ apply while avoiding plan-time dependency on ArgoCD custom resource schemas.
 
 The root Application points at
 `https://github.com/Infrastructure-Engineering-PT-Group-F/gitops.git`,
-revision `main`, path `platform`, and includes only `*/application.yaml`.
+revision `main`, path `.`, and includes only child `Application` manifests
+under `platform/`, `catalog/`, and `tenants/`. This lets ArgoCD discover
+future catalog and tenant App-of-Apps entries without rendering direct catalog
+or tenant resource manifests from the root Application.
 
 ## Provisioning Order
 

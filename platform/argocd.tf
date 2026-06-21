@@ -48,7 +48,7 @@ resource "helm_release" "argocd_apps" {
             path           = var.gitops_root_application_path
             directory = {
               recurse = true
-              include = "*/application.yaml"
+              include = var.gitops_root_application_include
             }
           }
           destination = {

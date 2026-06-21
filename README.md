@@ -104,8 +104,10 @@ folder. Consult the per-module README for variables and the exact
 
 The platform module installs ArgoCD with Helm and then installs the initial
 root App-of-Apps through the `argocd-apps` Helm chart. The root Application
-points at `Infrastructure-Engineering-PT-Group-F/gitops`. ArgoCD is not
-exposed publicly; use local port-forwarding for initial validation.
+points at `Infrastructure-Engineering-PT-Group-F/gitops` and includes only
+child ArgoCD Application manifests under `platform/`, `catalog/`, and
+`tenants/`. ArgoCD is not exposed publicly; use local port-forwarding for
+initial validation.
 
 Long-term platform services and tenant/application resources belong in the
 `gitops` repository, not in Terraform.
