@@ -1,11 +1,15 @@
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 resource "google_iam_workload_identity_pool" "github_pool" {
-  project                   = var.project_id
+  project                   = data.google_project.current.number
   workload_identity_pool_id = "github-actions-pool"
   display_name              = "GitHub Actions Pool"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github_provider" {
-  project                            = var.project_id
+  project                            = data.google_project.current.number
   workload_identity_pool_id          = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-actions-provider"
 

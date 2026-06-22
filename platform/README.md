@@ -144,7 +144,8 @@ Notes:
 `gcp-ajdininfrastructure-lol`, and outputs expose the zone name, DNS name, and
 authoritative name servers so the domain delegation can be documented outside
 Terraform. ExternalDNS and cert-manager receive Workload Identity service
-accounts with `roles/dns.admin` scoped to this managed zone only.
+accounts with project-level `roles/dns.admin` so they can manage records in
+the delegated Cloud DNS zone and complete DNS-01 validation.
 
 ## Outbound Internet (Cloud NAT)
 
