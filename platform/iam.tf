@@ -62,11 +62,10 @@ resource "google_service_account_iam_binding" "external_dns_wi_binding" {
   ]
 }
 
-resource "google_dns_managed_zone_iam_member" "external_dns_admin" {
-  project      = var.project_id
-  managed_zone = google_dns_managed_zone.delegated_platform_zone.name
-  role         = "roles/dns.admin"
-  member       = "serviceAccount:${google_service_account.external_dns_sa.email}"
+resource "google_project_iam_member" "external_dns_admin" {
+  project = var.project_id
+  role    = "roles/dns.admin"
+  member  = "serviceAccount:${google_service_account.external_dns_sa.email}"
 }
 
 resource "google_service_account" "cert_manager_dns01_sa" {
@@ -84,11 +83,10 @@ resource "google_service_account_iam_binding" "cert_manager_dns01_wi_binding" {
   ]
 }
 
-resource "google_dns_managed_zone_iam_member" "cert_manager_dns01_admin" {
-  project      = var.project_id
-  managed_zone = google_dns_managed_zone.delegated_platform_zone.name
-  role         = "roles/dns.admin"
-  member       = "serviceAccount:${google_service_account.cert_manager_dns01_sa.email}"
+resource "google_project_iam_member" "cert_manager_dns01_admin" {
+  project = var.project_id
+  role    = "roles/dns.admin"
+  member  = "serviceAccount:${google_service_account.cert_manager_dns01_sa.email}"
 }
 
 # -------------------------------------------------------------------------
