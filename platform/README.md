@@ -144,8 +144,9 @@ Notes:
 `gcp-ajdininfrastructure-lol`, and outputs expose the zone name, DNS name, and
 authoritative name servers so the domain delegation can be documented outside
 Terraform. ExternalDNS and cert-manager receive Workload Identity service
-accounts with project-level `roles/dns.admin` so they can manage records in
-the delegated Cloud DNS zone and complete DNS-01 validation.
+accounts in this module, but their project-level `roles/dns.admin` grants are
+manual operator bootstrap exceptions documented in
+[`../docs/bootstrap-exceptions.md`](../docs/bootstrap-exceptions.md).
 
 ## Outbound Internet (Cloud NAT)
 
@@ -186,12 +187,17 @@ or tenant resource manifests from the root Application.
 ## Provisioning Order
 
 Provisioning order is: bootstrap apply → manual node-GSA role grant → platform
-apply.
+apply → manual DNS add-on grants.
 
 The manual node-GSA role grant must happen after bootstrap creates the
 dedicated GKE node-pool service account and before platform creates or updates
 the managed node pool. It creates no service-account key, plaintext secret, or
 credential.
+
+The manual DNS add-on grants must happen after platform creates the
+`external-dns-sa` and `cert-manager-dns01-sa` Google service accounts and
+before ExternalDNS or cert-manager are expected to manage the delegated Cloud
+DNS zone.
 
 ## Run
 
