@@ -62,12 +62,6 @@ resource "google_service_account_iam_binding" "external_dns_wi_binding" {
   ]
 }
 
-resource "google_project_iam_member" "external_dns_admin" {
-  project = var.project_id
-  role    = "roles/dns.admin"
-  member  = "serviceAccount:${google_service_account.external_dns_sa.email}"
-}
-
 resource "google_service_account" "cert_manager_dns01_sa" {
   project      = var.project_id
   account_id   = "cert-manager-dns01-sa"
@@ -81,12 +75,6 @@ resource "google_service_account_iam_binding" "cert_manager_dns01_wi_binding" {
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[cert-manager/cert-manager]"
   ]
-}
-
-resource "google_project_iam_member" "cert_manager_dns01_admin" {
-  project = var.project_id
-  role    = "roles/dns.admin"
-  member  = "serviceAccount:${google_service_account.cert_manager_dns01_sa.email}"
 }
 
 # -------------------------------------------------------------------------

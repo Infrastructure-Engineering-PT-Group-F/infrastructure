@@ -34,6 +34,7 @@ The steps in the next section are the only ones performed by hand.
 | 7 | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.               | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets | Operator              |
 | 8 | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator. | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool | Operator              |
 | 9 | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.        | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources | Operator              |
+| 10 | ExternalDNS and cert-manager DNS admin grants               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.           | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records | Operator              |
 
 ## Detail
 
@@ -181,6 +182,36 @@ platform Private Services Access resources do not model a cross-module
 `depends_on` edge to the bootstrap API resources. The reserved range remains
 configurable so operators can review live VPC routes or future on-prem ranges
 before apply.
+
+### 10. ExternalDNS and cert-manager DNS admin grants
+
+ExternalDNS and cert-manager authenticate to Google Cloud through GKE Workload
+Identity. The platform Terraform creates the Google service accounts and binds
+the Kubernetes service accounts to them, but the project-level
+`roles/dns.admin` grants are applied manually because Terraform automation
+intentionally does not have broad project IAM administration.
+
+Run this after the platform Terraform apply has created both DNS add-on Google
+service accounts, and before GitOps is expected to reconcile public DNS records
+or DNS-01 certificates:
+
+```sh
+PROJECT_ID=<PROJECT_ID>
+EXTERNAL_DNS_GSA="$(terraform -chdir=platform output -raw external_dns_sa_email)"
+CERT_MANAGER_DNS01_GSA="$(terraform -chdir=platform output -raw cert_manager_dns01_sa_email)"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${EXTERNAL_DNS_GSA}" \
+  --role="roles/dns.admin"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${CERT_MANAGER_DNS01_GSA}" \
+  --role="roles/dns.admin"
+```
+
+This grants DNS record management without giving Terraform automation broad
+project IAM administration. It creates no service-account key, plaintext
+secret, credential file, or kubeconfig file.
 
 ## Related Documentation
 
