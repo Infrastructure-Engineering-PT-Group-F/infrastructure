@@ -31,11 +31,10 @@ The steps in the next section are the only ones performed by hand.
 | 4  | Initial operator access for the seed                         | The bootstrap module creates the least-privilege `terraform-automation` service account, so before it exists a human operator must run the seed with their own elevated credentials.                                                                     | Once, immediately before the bootstrap apply                                                                                                           | Operator              |
 | 5  | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                                                                                         | Once, during the bootstrap apply                                                                                                                       | Operator              |
 | 6  | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                                                                                                   | Before evaluation and handover                                                                                                                         | Project lead          |
-| 7  | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.                                                                                  | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets                                        | Operator              |
-| 8  | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator.                                                         | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool                                           | Operator              |
-| 9  | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.                                                                          | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources                      | Operator              |
-| 10 | ExternalDNS and cert-manager DNS admin grants                | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.                                                                              | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records                    | Operator              |
-| 11 | Tenant runtime secret value seeding                          | The AVWX API token and the GHCR pull token are externally issued and cannot be auto-generated, so their values are added to the Terraform-created Secret Manager secrets by a human operator. No value is committed to Git or stored in Terraform state. | After the platform apply has created the `avwx-api-key` and `ghcr-pull` secrets, and before the tenant runtime-secret ESO delivery is expected to sync | Operator              |
+| 7  | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator.                                                         | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool                                           | Operator              |
+| 8  | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.                                                                          | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources                      | Operator              |
+| 9  | ExternalDNS and cert-manager DNS admin grants                | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.                                                                              | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records                    | Operator              |
+| 10 | Tenant runtime secret value seeding                          | The AVWX API token and the GHCR pull token are externally issued and cannot be auto-generated, so their values are added to the Terraform-created Secret Manager secrets by a human operator. No value is committed to Git or stored in Terraform state. | After the platform apply has created the `avwx-api-key` and `ghcr-pull` secrets, and before the tenant runtime-secret ESO delivery is expected to sync | Operator              |
 
 ## Detail
 
@@ -88,33 +87,7 @@ Lecturer `@muhlba91` receives repository admin on the GitHub side and
 At present both are applied manually. Codifying the cluster-admin binding as IaC
 or GitOps is a possible later improvement that would remove this exception.
 
-### 7. External Secrets Secret Manager accessor grant
-
-External Secrets Operator authenticates to Google Cloud through GKE Workload
-Identity. The platform Terraform creates the Google service account and binds
-the Kubernetes service account to it, but the project-level
-`roles/secretmanager.secretAccessor` grant is applied manually because the
-Terraform automation service account intentionally does not have broad project
-IAM administration.
-
-Run this after the platform Terraform apply has created the External Secrets
-Google service account, and before External Secrets Operator is expected to read
-Google Secret Manager secrets:
-
-```sh
-PROJECT_ID=<PROJECT_ID>
-EXTERNAL_SECRETS_GSA="$(terraform -chdir=platform output -raw external_secrets_sa_email)"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${EXTERNAL_SECRETS_GSA}" \
-  --role="roles/secretmanager.secretAccessor"
-```
-
-This grants read access to Secret Manager secret payloads without creating a
-service account key, storing plaintext secrets, or committing credentials to the
-repository.
-
-### 8. GKE node service account minimal role grant
+### 7. GKE node service account minimal role grant
 
 The bootstrap module creates the dedicated GKE node-pool Google service account.
 The platform module assigns that account to the managed node pool instead of
@@ -138,7 +111,7 @@ This creates no service-account key, plaintext secret, or credential. It only
 grants the dedicated node service account the minimal role GKE requires for
 node operation.
 
-### 9. Crossplane Cloud SQL admin grant
+### 8. Crossplane Cloud SQL admin grant
 
 Crossplane provider-gcp authenticates to Google Cloud through GKE Workload
 Identity. The platform Terraform creates the `crossplane-sa` Google service
@@ -184,7 +157,7 @@ platform Private Services Access resources do not model a cross-module
 configurable so operators can review live VPC routes or future on-prem ranges
 before apply.
 
-### 10. ExternalDNS and cert-manager DNS admin grants
+### 9. ExternalDNS and cert-manager DNS admin grants
 
 ExternalDNS and cert-manager authenticate to Google Cloud through GKE Workload
 Identity. The platform Terraform creates the Google service accounts and binds
@@ -214,7 +187,7 @@ This grants DNS record management without giving Terraform automation broad
 project IAM administration. It creates no service-account key, plaintext
 secret, credential file, or kubeconfig file.
 
-### 11. Tenant runtime secret value seeding
+### 10. Tenant runtime secret value seeding
 
 The platform Terraform (`platform/secrets.tf`) creates the Secret Manager
 secrets `avwx-api-key` and `ghcr-pull` as empty containers and grants the

@@ -21,6 +21,32 @@ resource "google_project_iam_member" "terraform_roles" {
   member   = "serviceAccount:${google_service_account.terraform.email}"
 }
 
+# Custom role letting the Terraform SA manage Secret Manager secret containers
+# and their IAM, but NOT read secret payloads (no secretmanager.versions.access).
+# Values are seeded out-of-band by an operator, so the automation identity never
+# needs payload access. See platform/secrets.tf and docs/bootstrap-exceptions.md.
+resource "google_project_iam_custom_role" "secret_container_manager" {
+  project     = var.project_id
+  role_id     = "secretContainerManager"
+  title       = "Secret Manager Container Manager"
+  description = "Manage Secret Manager secret containers and their IAM, without access to secret payloads."
+  permissions = [
+    "secretmanager.secrets.create",
+    "secretmanager.secrets.get",
+    "secretmanager.secrets.list",
+    "secretmanager.secrets.update",
+    "secretmanager.secrets.delete",
+    "secretmanager.secrets.getIamPolicy",
+    "secretmanager.secrets.setIamPolicy",
+  ]
+}
+
+resource "google_project_iam_member" "terraform_secret_container_manager" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.secret_container_manager.id
+  member  = "serviceAccount:${google_service_account.terraform.email}"
+}
+
 # Keyless impersonation: operators mint short-lived tokens for the SA.
 resource "google_service_account_iam_member" "operators_token_creator" {
   for_each           = toset(var.operator_members)
