@@ -23,18 +23,19 @@ The steps in the next section are the only ones performed by hand.
 
 ## Exceptions
 
-| # | Manual step                                                  | Why it is manual                                                                                                                                                                     | When                                                           | Owner                 |
-| - | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------- |
-| 1 | GitHub organization and repository creation                  | The IaC that configures CI trust lives inside the org, so the org and repos must exist before any automation can run                                                                 | Once, before everything else                                   | Project lead          |
-| 2 | GCP project creation, billing link, and credits              | Creating a project and attaching a billing account requires an identity with billing rights and is a prerequisite to every GCP API call. Education credits are applied out of band.  | Once, before the Terraform seed                                | Billing account owner |
-| 3 | Domain registration and registrar nameserver delegation      | Buying a domain is a commercial transaction, and delegating nameservers happens at the registrar, outside the cluster. The DNS provider is still to be decided.                      | Before cert-manager and ExternalDNS can serve public hostnames | Domain owner          |
-| 4 | Initial operator access for the seed                         | The bootstrap module creates the least-privilege `terraform-automation` service account, so before it exists a human operator must run the seed with their own elevated credentials. | Once, immediately before the bootstrap apply                   | Operator              |
-| 5 | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                     | Once, during the bootstrap apply                               | Operator              |
-| 6 | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                               | Before evaluation and handover                                 | Project lead          |
-| 7 | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.               | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets | Operator              |
-| 8 | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator. | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool | Operator              |
-| 9 | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.        | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources | Operator              |
-| 10 | ExternalDNS and cert-manager DNS admin grants               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.           | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records | Operator              |
+| #  | Manual step                                                  | Why it is manual                                                                                                                                                                                                                                         | When                                                                                                                                                   | Owner                 |
+| -- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| 1  | GitHub organization and repository creation                  | The IaC that configures CI trust lives inside the org, so the org and repos must exist before any automation can run                                                                                                                                     | Once, before everything else                                                                                                                           | Project lead          |
+| 2  | GCP project creation, billing link, and credits              | Creating a project and attaching a billing account requires an identity with billing rights and is a prerequisite to every GCP API call. Education credits are applied out of band.                                                                      | Once, before the Terraform seed                                                                                                                        | Billing account owner |
+| 3  | Domain registration and registrar nameserver delegation      | Buying a domain is a commercial transaction, and delegating nameservers happens at the registrar, outside the cluster. The DNS provider is still to be decided.                                                                                          | Before cert-manager and ExternalDNS can serve public hostnames                                                                                         | Domain owner          |
+| 4  | Initial operator access for the seed                         | The bootstrap module creates the least-privilege `terraform-automation` service account, so before it exists a human operator must run the seed with their own elevated credentials.                                                                     | Once, immediately before the bootstrap apply                                                                                                           | Operator              |
+| 5  | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                                                                                         | Once, during the bootstrap apply                                                                                                                       | Operator              |
+| 6  | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                                                                                                   | Before evaluation and handover                                                                                                                         | Project lead          |
+| 7  | External Secrets Secret Manager accessor grant               | Terraform automation intentionally does not hold broad project IAM administration, so the project-level Secret Manager accessor binding is applied by a human operator.                                                                                  | After the platform apply and before External Secrets Operator is expected to read Google Secret Manager secrets                                        | Operator              |
+| 8  | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator.                                                         | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool                                           | Operator              |
+| 9  | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.                                                                          | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources                      | Operator              |
+| 10 | ExternalDNS and cert-manager DNS admin grants                | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.                                                                              | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records                    | Operator              |
+| 11 | Tenant runtime secret value seeding                          | The AVWX API token and the GHCR pull token are externally issued and cannot be auto-generated, so their values are added to the Terraform-created Secret Manager secrets by a human operator. No value is committed to Git or stored in Terraform state. | After the platform apply has created the `avwx-api-key` and `ghcr-pull` secrets, and before the tenant runtime-secret ESO delivery is expected to sync | Operator              |
 
 ## Detail
 
@@ -212,6 +213,38 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
 This grants DNS record management without giving Terraform automation broad
 project IAM administration. It creates no service-account key, plaintext
 secret, credential file, or kubeconfig file.
+
+### 11. Tenant runtime secret value seeding
+
+The platform Terraform (`platform/secrets.tf`) creates the Secret Manager
+secrets `avwx-api-key` and `ghcr-pull` as empty containers and grants the
+External Secrets Operator service account a least-privilege
+`roles/secretmanager.secretAccessor` binding per secret. Terraform does not
+create the secret values, so no payload enters Terraform state. The values are
+externally issued credentials that cannot be auto-generated, which the
+assignment explicitly permits storing manually in the secrets management
+platform.
+
+Run this after the platform Terraform apply has created the two secrets and
+before the tenant runtime-secret ESO delivery is expected to sync:
+
+```sh
+PROJECT_ID=<PROJECT_ID>
+
+read -rs AVWX_TOKEN; echo
+read -rs GHCR_PAT;   echo
+
+printf '%s' "$AVWX_TOKEN" | gcloud secrets versions add avwx-api-key \
+  --data-file=- --project="$PROJECT_ID"
+printf '%s' "$GHCR_PAT" | gcloud secrets versions add ghcr-pull \
+  --data-file=- --project="$PROJECT_ID"
+
+unset AVWX_TOKEN GHCR_PAT
+```
+
+This creates no service-account key, commits no plaintext value, and keeps the
+values out of Git and Terraform state. On a full teardown and rebuild, the two
+values must be re-seeded before the ESO delivery becomes Ready.
 
 ## Related Documentation
 
