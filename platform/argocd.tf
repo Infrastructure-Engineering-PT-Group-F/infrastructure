@@ -52,18 +52,6 @@ resource "helm_release" "argocd_apps" {
               server    = "https://kubernetes.default.svc"
               namespace = "*"
             },
-            {
-              server    = "https://kubernetes.default.svc"
-              namespace = "!kube-system"
-            },
-            {
-              server    = "https://kubernetes.default.svc"
-              namespace = "!kube-node-lease"
-            },
-            {
-              server    = "https://kubernetes.default.svc"
-              namespace = "!gke-*"
-            },
           ]
           clusterResourceWhitelist = [
             {
