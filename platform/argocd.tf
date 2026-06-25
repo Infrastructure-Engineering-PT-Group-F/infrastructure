@@ -22,8 +22,8 @@ resource "helm_release" "argocd" {
 
   values = [
     yamlencode({
-      server = {
-        config = {
+      configs = {
+        cm = {
           "resource.customizations.health.argoproj.io_Application" = <<-EOF
             hs = {}
             if obj.status ~= nil then
