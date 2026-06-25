@@ -92,7 +92,7 @@ The current live inventory is based on read-only aggregate discovery.
 | Billing enabled | `yes` |
 | BigQuery billing-export metadata discovery | Unavailable |
 
-Current Terraform declarations include the GKE platform cluster, managed node pool defaults, Cloud NAT, Cloud Router, Cloud DNS, Terraform state storage, Secret Manager containers, and ArgoCD bootstrap. Terraform also declares Cloud SQL prerequisites, but not a direct Cloud SQL instance resource.
+Current Terraform declarations include the GKE platform cluster, managed node pool defaults, Cloud NAT, Cloud Router, Cloud DNS, Terraform state storage, Secret Manager containers, and ArgoCD bootstrap. Terraform also declares Cloud SQL prerequisites, but not a direct Cloud SQL instance resource. The billable Cloud SQL instance is created by the GitOps/Crossplane service-catalog flow through the tenant `SQLInstance` claim and Crossplane `SQLInstance` Composition; Terraform provides only the API, IAM, and private-connectivity prerequisites.
 
 ### Capacity Delta and Availability Trade-Off
 
@@ -218,13 +218,13 @@ Repeat the report for a complete month and explicitly document whether the archi
 | --- | --- |
 | Owner | Project Lead acting as Platform & Cost Owner; ownership must be recorded for each monthly review. |
 | Cadence | Monthly, after a complete calendar month has closed and billing data has settled. |
-| Evidence | Billing Reports screenshot showing project context, original CSV attached manually to Issue #6, and sanitized service-level derivative committed in repository documentation. |
+| Evidence | Redacted Billing Reports screenshot showing project context, a redacted source CSV or equivalent billing export attached manually to Issue #6, and the sanitized service-level derivative committed in repository documentation. |
 | Baseline | Establish a current operating baseline only after the first complete steady-state month; keep the historical Issue #14 estimate as a separate audit baseline. |
 | Service review | Review total gross cost, savings, net cost, and cost by service. |
-| Initial escalation threshold | Investigate any unplanned billable service, any service increase above 20% and at least 2 EUR against the approved operating baseline, or total monthly net cost above 20% of the approved operating baseline. |
+| Initial escalation threshold | Investigate any unplanned billable service; any existing service whose monthly net cost is more than 20% and at least 2 EUR above its approved service baseline; or total monthly net cost that exceeds 120% of the approved operating baseline. |
 | Initial-threshold limitation | These thresholds are provisional for the coursework pilot and must be recalibrated after the first complete steady-state month. |
 | Escalation | Create a follow-up issue linked to Issue #6, document root cause and mitigation, and implement approved architecture or configuration changes through a pull request. |
-| Monthly close | Attach original evidence to Issue #6, update the sanitized evidence table, record deviations and decisions, then refresh the presentation summary. |
+| Monthly close | Attach redacted source evidence to Issue #6, update the sanitized evidence table, record deviations and decisions, then refresh the presentation summary. |
 
 ## Presentation Summary
 
