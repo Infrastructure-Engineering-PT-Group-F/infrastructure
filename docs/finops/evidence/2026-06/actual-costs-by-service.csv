@@ -1,0 +1,9 @@
+service,gross_cost_eur,savings_programmes_eur,other_savings_eur,net_cost_eur,net_cost_share_percent
+Compute Engine,4.71,0.00,0.00,4.71,46.40
+Kubernetes Engine,3.80,0.00,0.00,3.80,37.44
+Cloud Monitoring,1.04,0.00,0.00,1.04,10.25
+Networking,0.90,0.00,-0.54,0.36,3.55
+Cloud SQL,0.15,0.00,0.00,0.15,1.48
+Network Security,0.08,0.00,0.00,0.08,0.79
+Cloud DNS,0.01,0.00,0.00,0.01,0.10
+Total,10.69,0.00,-0.54,10.15,100.00
