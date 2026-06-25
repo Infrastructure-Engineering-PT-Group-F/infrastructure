@@ -72,7 +72,11 @@ This baseline is useful for auditability and explaining how the plan evolved. It
 
 ## Current Live Architecture
 
-The current live inventory is based on read-only aggregate discovery.
+### Point-in-Time Architecture Snapshot
+
+The following inventory is a point-in-time pre-change snapshot captured before the 25 June 2026 GKE Dataplane V2 cluster re-create. It describes the architecture used to interpret the 1-24 June 2026 billing evidence and must not be read as the current post-recreate live topology.
+
+The observed point-in-time inventory is based on read-only aggregate discovery.
 
 | Area | Live evidence |
 | --- | --- |
@@ -93,6 +97,12 @@ The current live inventory is based on read-only aggregate discovery.
 | BigQuery billing-export metadata discovery | Unavailable |
 
 Current Terraform declarations include the GKE platform cluster, managed node pool defaults, Cloud NAT, Cloud Router, Cloud DNS, Terraform state storage, Secret Manager containers, and ArgoCD bootstrap. Terraform also declares Cloud SQL prerequisites, but not a direct Cloud SQL instance resource. The billable Cloud SQL instance is created by the GitOps/Crossplane service-catalog flow through the tenant `SQLInstance` claim and Crossplane `SQLInstance` Composition; Terraform provides only the API, IAM, and private-connectivity prerequisites.
+
+### In-Period Architecture Change: GKE Dataplane V2 Re-Create
+
+On 25 June 2026, the platform was re-created to enable GKE Dataplane V2 for Kubernetes NetworkPolicy enforcement. The `datapath_provider` setting is immutable and cannot be migrated in place.
+
+The actual billing snapshot covers only 1-24 June 2026. It therefore does not include costs of the post-recreate architecture. June 2026 is an architecture-transition month and must not be used to establish a steady-state operating-cost baseline.
 
 ### Capacity Delta and Availability Trade-Off
 
@@ -171,6 +181,9 @@ Because the baseline is a monthly estimate and the actual evidence is a partial 
 - There is no Media CDN cost evidence in the current service-level snapshot; this does not prove that Media CDN is absent.
 - The original Billing Reports screenshot and downloaded CSV must be attached manually to Issue #6 before closure.
 - The Billing Reports project-filter context must be visible in the manually attached screenshot or export evidence.
+- The post-recreate live architecture inventory has not yet been captured in this report.
+- Any post-recreate billing effects or transition costs have not been isolated in the current 1-24 June snapshot.
+- A complete post-recreate calendar month is required before establishing the approved operating baseline.
 
 ## Root Causes of the Current Difference
 
@@ -204,6 +217,8 @@ Attach the original Billing Reports CSV and screenshot to issue #6 before closur
 
 Service-level billing data is adequate for monthly governance; BigQuery Billing Export is required later for SKU-level investigation and detailed chargeback.
 
+7. Material in-period architecture changes, including cluster re-creation, must be timestamped and recorded with their expected capacity and cost impact before a monthly operating baseline is approved.
+
 Every billable edge resource, including forwarding rules and ingress-related components, needs a documented provisioning owner and lifecycle path.
 
 Estimates must be recalibrated after the first complete, steady-state calendar month.
@@ -211,6 +226,8 @@ Estimates must be recalibrated after the first complete, steady-state calendar m
 Compare three dimensions separately: the historical issue #14 baseline, the current as-code architecture, and actual billing results. Each answers a different question and should not be collapsed into one variance figure without normalization.
 
 Repeat the report for a complete month and explicitly document whether the architecture changed during the period.
+
+For a transition month, distinguish pre-change and post-change architecture periods and use the first complete post-change calendar month for the steady-state operating baseline.
 
 ## Operating Cost Monitoring Model
 
@@ -224,7 +241,7 @@ Repeat the report for a complete month and explicitly document whether the archi
 | Initial escalation threshold | Investigate any unplanned billable service; any existing service whose monthly net cost is more than 20% and at least 2 EUR above its approved service baseline; or total monthly net cost that exceeds 120% of the approved operating baseline. |
 | Initial-threshold limitation | These thresholds are provisional for the coursework pilot and must be recalibrated after the first complete steady-state month. |
 | Escalation | Create a follow-up issue linked to Issue #6, document root cause and mitigation, and implement approved architecture or configuration changes through a pull request. |
-| Monthly close | Attach redacted source evidence to Issue #6, update the sanitized evidence table, record deviations and decisions, then refresh the presentation summary. |
+| Monthly close | Attach redacted source evidence to Issue #6, update the sanitized evidence table, record deviations, decisions, and timestamped in-period architecture changes, then refresh the presentation summary. |
 
 ## Presentation Summary
 
