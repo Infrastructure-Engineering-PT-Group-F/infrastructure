@@ -20,6 +20,31 @@ resource "helm_release" "argocd" {
     },
   ]
 
+  values = [
+    yamlencode({
+      server = {
+        config = {
+          "resource.customizations.health.argoproj.io_Application" = <<-EOF
+            hs = {}
+            if obj.status ~= nil then
+              if obj.status.health ~= nil then
+                hs.status = obj.status.health.status
+                if obj.status.health.message ~= nil then
+                  hs.message = obj.status.health.message
+                end
+                return hs
+              end
+            end
+            hs.status = "Progressing"
+            hs.message = "Waiting for Application to report health"
+            return hs
+          EOF
+        }
+      }
+    })
+  ]
+
+
   depends_on = [
     google_container_node_pool.primary,
     google_compute_router_nat.platform,
