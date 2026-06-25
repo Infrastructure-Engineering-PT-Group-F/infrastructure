@@ -18,6 +18,8 @@ resource "google_container_cluster" "platform" {
     channel = var.release_channel
   }
 
+  datapath_provider = "ADVANCED_DATAPATH"
+
   remove_default_node_pool = true
   initial_node_count       = 1
 

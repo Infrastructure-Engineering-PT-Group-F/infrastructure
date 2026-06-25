@@ -26,6 +26,8 @@ see [`../README.md`](../README.md#remote-state).
   `<project_id>.svc.id.goog` workload identity pool.
 - Keeps worker nodes private, so they do not receive public IP addresses.
 - Keeps the Kubernetes control plane endpoint publicly reachable.
+- Enables GKE Dataplane V2 (`ADVANCED_DATAPATH`) so the cluster enforces
+  Kubernetes `NetworkPolicy` (see "NetworkPolicy Enforcement").
 - Uses the platform VPC, platform subnet, and the `pods` and `services`
   secondary ranges for VPC-native IP allocation.
 - Installs ArgoCD into the `argocd` namespace with the Terraform Helm
@@ -136,6 +138,12 @@ Notes:
 - The GKE cluster uses private nodes and reserves
   `master_ipv4_cidr_block` for control plane communication while keeping the
   control plane endpoint publicly reachable.
+
+## NetworkPolicy Enforcement
+
+The cluster runs **GKE Dataplane V2** (`datapath_provider =
+"ADVANCED_DATAPATH"`), a Cilium/eBPF dataplane with built-in Kubernetes
+`NetworkPolicy` enforcement. 
 
 ## Delegated DNS Zone
 
