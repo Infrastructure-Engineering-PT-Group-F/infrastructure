@@ -7,6 +7,7 @@ resource "helm_release" "argocd" {
   chart      = var.argocd_chart_name
   version    = var.argocd_chart_version
   skip_crds  = false
+  timeout    = 600
 
   set = [
     {
