@@ -32,6 +32,11 @@ see [`../README.md`](../README.md#remote-state).
   provider.
 - Installs the initial ArgoCD root App-of-Apps through the `argocd-apps` Helm
   chart.
+- Creates a restricted `platform` ArgoCD `AppProject` and runs the root
+  App-of-Apps (and therefore all platform add-ons) under it instead of the
+  unrestricted built-in `default` project. The project allowlists the GitOps repo
+  and the add-on chart repos in `sourceRepos` and restricts `destinations` to the
+  in-cluster server, limiting blast radius.
 
 Terraform only bootstraps ArgoCD. Long-term platform add-ons such as
 cert-manager, ExternalDNS, External Secrets Operator, Crossplane, ingress, and

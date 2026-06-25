@@ -35,13 +35,60 @@ resource "helm_release" "argocd_apps" {
 
   values = [
     yamlencode({
+      projects = {
+        platform = {
+          namespace   = var.argocd_namespace
+          description = "Restricted project for the platform App-of-Apps and add-ons."
+          sourceRepos = [
+            var.gitops_repo_url,
+            "https://charts.jetstack.io",
+            "docker.io/envoyproxy",
+            "https://kubernetes-sigs.github.io/external-dns/",
+            "https://charts.external-secrets.io",
+            "https://charts.crossplane.io/stable",
+          ]
+          destinations = [
+            {
+              server    = "https://kubernetes.default.svc"
+              namespace = "*"
+            },
+            {
+              server    = "https://kubernetes.default.svc"
+              namespace = "!kube-system"
+            },
+            {
+              server    = "https://kubernetes.default.svc"
+              namespace = "!kube-node-lease"
+            },
+            {
+              server    = "https://kubernetes.default.svc"
+              namespace = "!gke-*"
+            },
+          ]
+          clusterResourceWhitelist = [
+            {
+              group = "*"
+              kind  = "*"
+            },
+          ]
+          namespaceResourceWhitelist = [
+            {
+              group = "*"
+              kind  = "*"
+            },
+          ]
+          orphanedResources = {
+            warn = true
+          }
+        }
+      }
       applications = {
         (var.argocd_root_application_name) = {
           namespace = var.argocd_namespace
           finalizers = [
             "resources-finalizer.argocd.argoproj.io",
           ]
-          project = "default"
+          project = "platform"
           source = {
             repoURL        = var.gitops_repo_url
             targetRevision = var.gitops_target_revision
