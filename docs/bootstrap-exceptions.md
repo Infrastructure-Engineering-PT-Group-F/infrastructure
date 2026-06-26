@@ -80,10 +80,17 @@ the project and is also summarized in the
 
 ### 6. Lecturer access
 
-Lecturer `@muhlba91` receives repository admin on the GitHub side and
-`cluster-admin` on the Kubernetes side so the work can be reviewed and operated.
-At present both are applied manually. Codifying the cluster-admin binding as IaC
-or GitOps is a possible later improvement that would remove this exception.
+Lecturer `@muhlba91`
+(`daniel.muehlbachler-pietrzykowski@hochschule-burgenland.at`) receives
+repository admin on the GitHub side and `cluster-admin` on the Kubernetes side
+so the work can be reviewed and operated. The cluster-admin grant is in place
+through GCP IAM on project `dark-diagram-496907-k8`: the lecturer holds
+`roles/container.admin` (the IAM equivalent of `cluster-admin` on GKE) as well
+as `roles/owner`. Access therefore comes from IAM rather than a Kubernetes
+`ClusterRoleBinding`. At present both the GitHub and the IAM grants are applied
+manually. Codifying the IAM grant as IaC (a `google_project_iam_member` for
+`roles/container.admin` in the bootstrap stage) is a possible later improvement
+that would remove this exception.
 
 ### 7. Tenant runtime secret value seeding
 

@@ -38,12 +38,18 @@ The work lives in the `Infrastructure-Engineering-PT-Group-F` organization.
 
 ## Lecturer Access
 
-Lecturer `@muhlba91` needs administrative visibility on both the source and the
-running platform. This is tracked as a checklist because it is currently applied
-by hand (see [bootstrap-exceptions.md](bootstrap-exceptions.md)).
+Lecturer `@muhlba91`
+(`daniel.muehlbachler-pietrzykowski@hochschule-burgenland.at`) needs
+administrative visibility on both the source and the running platform. This is
+tracked as a checklist because it is applied by hand (see
+[bootstrap-exceptions.md](bootstrap-exceptions.md)).
 
-- [ ] Repository admin on the organization repositories.
-- [ ] `cluster-admin` on the GKE cluster.
+- [x] Repository admin on the organization repositories.
+- [x] `cluster-admin` on the GKE cluster. Granted through GCP IAM on project
+  `dark-diagram-496907-k8` via `roles/container.admin` (full control of the
+  cluster's Kubernetes API objects, the IAM equivalent of `cluster-admin`);
+  the lecturer also holds `roles/owner`. Access is via IAM, not a Kubernetes
+  `ClusterRoleBinding`, and is not yet codified in Terraform.
 
 ## Google Cloud IAM
 
