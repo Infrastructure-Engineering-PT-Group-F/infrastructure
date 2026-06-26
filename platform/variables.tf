@@ -15,6 +15,24 @@ variable "gke_node_pool_sa_account_id" {
   default     = "gke-node-pool-sa"
 }
 
+variable "crossplane_gcp_sa_account_id" {
+  description = "Account ID of the Crossplane Google service account whose project IAM is managed by the bootstrap module."
+  type        = string
+  default     = "crossplane-sa"
+}
+
+variable "external_dns_sa_account_id" {
+  description = "Account ID of the ExternalDNS Google service account whose project IAM is managed by the bootstrap module."
+  type        = string
+  default     = "external-dns-sa"
+}
+
+variable "cert_manager_dns01_sa_account_id" {
+  description = "Account ID of the cert-manager DNS-01 Google service account whose project IAM is managed by the bootstrap module."
+  type        = string
+  default     = "cert-manager-dns01-sa"
+}
+
 variable "region" {
   description = "Default GCP region for regional Google Cloud APIs used by the platform."
   type        = string

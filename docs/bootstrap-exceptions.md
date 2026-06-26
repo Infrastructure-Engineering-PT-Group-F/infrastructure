@@ -14,8 +14,9 @@ person before handover.
 Everything after the one-time seed is automated:
 
 - **Terraform (`infrastructure/`)** provisions the VPC, the zonal GKE cluster
-  and node pool, IAM and Workload Identity, the Workload Identity Federation
-  trust for CI, and the remote state bucket
+  and node pool, IAM and Workload Identity, runtime-critical project IAM
+  grants, the Workload Identity Federation trust for CI, and the remote state
+  bucket
 - **GitOps (`gitops/`)** provisions the in-cluster platform add-ons and the
   per-tenant resources through the ArgoCD app-of-apps pattern
 
@@ -31,10 +32,7 @@ The steps in the next section are the only ones performed by hand.
 | 4  | Initial operator access for the seed                         | The bootstrap module creates the least-privilege `terraform-automation` service account, so before it exists a human operator must run the seed with their own elevated credentials.                                                                     | Once, immediately before the bootstrap apply                                                                                                           | Operator              |
 | 5  | Bootstrap first apply with local state, then state migration | The bootstrap module creates its own remote state bucket, so the first apply runs against local state and is then migrated with `terraform init -migrate-state`.                                                                                         | Once, during the bootstrap apply                                                                                                                       | Operator              |
 | 6  | Lecturer access (GitHub admin and cluster-admin)             | Lecturer `@muhlba91` is granted repository admin in GitHub and `cluster-admin` in the cluster. This is currently applied by hand and not yet codified.                                                                                                   | Before evaluation and handover                                                                                                                         | Project lead          |
-| 7  | GKE node service account minimal role grant                  | Terraform automation intentionally does not hold broad project IAM administration rights, so the minimal project role for the dedicated GKE node service account is applied by a human operator.                                                         | After the bootstrap apply has created the GSA and before the platform apply creates or updates the node pool                                           | Operator              |
-| 8  | Crossplane Cloud SQL admin grant                             | Terraform automation intentionally does not hold broad project IAM administration, so `roles/cloudsql.admin` is granted manually to the `crossplane-sa` Google service account.                                                                          | After the platform apply has created `crossplane-sa` and before Crossplane provider-gcp is expected to create Cloud SQL resources                      | Operator              |
-| 9  | ExternalDNS and cert-manager DNS admin grants                | Terraform automation intentionally does not hold broad project IAM administration, so the project-level DNS admin bindings for DNS add-ons are applied by a human operator.                                                                              | After the platform apply has created both DNS add-on GSAs and before ExternalDNS or cert-manager are expected to manage DNS records                    | Operator              |
-| 10 | Tenant runtime secret value seeding                          | The AVWX API token and the GHCR pull token are externally issued and cannot be auto-generated, so their values are added to the Terraform-created Secret Manager secrets by a human operator. No value is committed to Git or stored in Terraform state. | After the platform apply has created the `avwx-api-key` and `ghcr-pull` secrets, and before the tenant runtime-secret ESO delivery is expected to sync | Operator              |
+| 7  | Tenant runtime secret value seeding                          | The AVWX API token and the GHCR pull token are externally issued and cannot be auto-generated, so their values are added to the Terraform-created Secret Manager secrets by a human operator. No value is committed to Git or stored in Terraform state. | After the platform apply has created the `avwx-api-key` and `ghcr-pull` secrets, and before the tenant runtime-secret ESO delivery is expected to sync | Operator              |
 
 ## Detail
 
@@ -87,107 +85,7 @@ Lecturer `@muhlba91` receives repository admin on the GitHub side and
 At present both are applied manually. Codifying the cluster-admin binding as IaC
 or GitOps is a possible later improvement that would remove this exception.
 
-### 7. GKE node service account minimal role grant
-
-The bootstrap module creates the dedicated GKE node-pool Google service account.
-The platform module assigns that account to the managed node pool instead of
-using the Compute Engine default service account. Terraform automation
-intentionally has no broad project IAM administration rights, so a human
-operator grants the minimal GKE node role at the project level.
-
-Run this after the bootstrap Terraform apply has created the GSA, and before
-the platform Terraform apply creates or updates the node pool:
-
-```sh
-PROJECT_ID=<PROJECT_ID>
-NODE_GSA="$(terraform -chdir=bootstrap output -raw gke_node_pool_sa_email)"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${NODE_GSA}" \
-  --role="roles/container.defaultNodeServiceAccount"
-```
-
-This creates no service-account key, plaintext secret, or credential. It only
-grants the dedicated node service account the minimal role GKE requires for
-node operation.
-
-### 8. Crossplane Cloud SQL admin grant
-
-Crossplane provider-gcp authenticates to Google Cloud through GKE Workload
-Identity. The platform Terraform creates the `crossplane-sa` Google service
-account and binds the Kubernetes service account to it, but the project-level
-`roles/cloudsql.admin` grant is applied manually because Terraform automation
-intentionally does not have broad project IAM administration.
-
-Run this after the platform Terraform apply has created the Crossplane Google
-service account, and before GitOps provider-gcp is expected to provision Cloud
-SQL resources:
-
-```sh
-PROJECT_ID=<PROJECT_ID>
-CROSSPLANE_GSA="$(terraform -chdir=platform output -raw crossplane_sa_email)"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${CROSSPLANE_GSA}" \
-  --role="roles/cloudsql.admin"
-```
-
-This uses GKE Workload Identity and creates no static service-account key,
-token, plaintext secret, credential file, or kubeconfig file. The grant must be
-completed before GitOps provider-gcp provisions Cloud SQL. The Service
-Networking service agent must not be preemptively granted custom roles;
-troubleshoot that identity only if the private connection fails in the real GCP
-environment.
-
-The provisioning order for Cloud SQL private connectivity is:
-
-1. Bootstrap apply enables `sqladmin.googleapis.com` and
-   `servicenetworking.googleapis.com`.
-2. Platform apply creates the VPC, reserved private-services range, VPC peering
-   connection, and `crossplane-sa`.
-3. Operator manually grants `roles/cloudsql.admin` to `crossplane-sa`.
-4. GitOps deploys and validates the Crossplane GCP provider.
-5. Tenant Cloud SQL resources are defined and tested through the platform catalog.
-6. A Cloud SQL smoke test uses the smallest short-lived configuration and is
-   deleted immediately after validation.
-
-Because `bootstrap/` and `platform/` are separate Terraform root modules, the
-platform Private Services Access resources do not model a cross-module
-`depends_on` edge to the bootstrap API resources. The reserved range remains
-configurable so operators can review live VPC routes or future on-prem ranges
-before apply.
-
-### 9. ExternalDNS and cert-manager DNS admin grants
-
-ExternalDNS and cert-manager authenticate to Google Cloud through GKE Workload
-Identity. The platform Terraform creates the Google service accounts and binds
-the Kubernetes service accounts to them, but the project-level
-`roles/dns.admin` grants are applied manually because Terraform automation
-intentionally does not have broad project IAM administration.
-
-Run this after the platform Terraform apply has created both DNS add-on Google
-service accounts, and before GitOps is expected to reconcile public DNS records
-or DNS-01 certificates:
-
-```sh
-PROJECT_ID=<PROJECT_ID>
-EXTERNAL_DNS_GSA="$(terraform -chdir=platform output -raw external_dns_sa_email)"
-CERT_MANAGER_DNS01_GSA="$(terraform -chdir=platform output -raw cert_manager_dns01_sa_email)"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${EXTERNAL_DNS_GSA}" \
-  --role="roles/dns.admin"
-
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${CERT_MANAGER_DNS01_GSA}" \
-  --role="roles/dns.admin"
-```
-
-This grants DNS record management without giving Terraform automation broad
-project IAM administration. It creates no service-account key, plaintext
-secret, credential file, or kubeconfig file.
-
-### 10. Tenant runtime secret value seeding
+### 7. Tenant runtime secret value seeding
 
 The platform Terraform (`platform/secrets.tf`) creates the Secret Manager
 secrets `avwx-api-key` and `ghcr-pull` as empty containers and grants the
