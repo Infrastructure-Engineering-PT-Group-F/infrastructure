@@ -26,6 +26,24 @@ variable "gke_node_pool_sa_account_id" {
   default     = "gke-node-pool-sa"
 }
 
+variable "crossplane_gcp_sa_account_id" {
+  description = "Account ID for the Crossplane Google service account managed by the platform module."
+  type        = string
+  default     = "crossplane-sa"
+}
+
+variable "external_dns_sa_account_id" {
+  description = "Account ID for the ExternalDNS Google service account managed by the platform module."
+  type        = string
+  default     = "external-dns-sa"
+}
+
+variable "cert_manager_dns01_sa_account_id" {
+  description = "Account ID for the cert-manager DNS-01 Google service account managed by the platform module."
+  type        = string
+  default     = "cert-manager-dns01-sa"
+}
+
 variable "tf_sa_roles" {
   description = "Project roles granted to the Terraform SA. Grown per issue (least privilege)."
   type        = list(string)

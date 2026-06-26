@@ -17,7 +17,7 @@ resource "google_service_account_iam_binding" "gitops_wi_binding" {
 
 resource "google_service_account" "crossplane_gcp_sa" {
   project      = var.project_id
-  account_id   = "crossplane-sa"
+  account_id   = var.crossplane_gcp_sa_account_id
   display_name = "Crossplane Workload Identity SA"
 }
 
@@ -49,7 +49,7 @@ resource "google_service_account_iam_binding" "external_secrets_wi_binding" {
 # -------------------------------------------------------------------------
 resource "google_service_account" "external_dns_sa" {
   project      = var.project_id
-  account_id   = "external-dns-sa"
+  account_id   = var.external_dns_sa_account_id
   display_name = "ExternalDNS Workload Identity SA"
   description  = "Identity for ExternalDNS to manage records in the delegated Cloud DNS zone."
 }
@@ -64,7 +64,7 @@ resource "google_service_account_iam_binding" "external_dns_wi_binding" {
 
 resource "google_service_account" "cert_manager_dns01_sa" {
   project      = var.project_id
-  account_id   = "cert-manager-dns01-sa"
+  account_id   = var.cert_manager_dns01_sa_account_id
   display_name = "cert-manager DNS-01 Workload Identity SA"
   description  = "Identity for cert-manager to complete DNS-01 challenges in the delegated Cloud DNS zone."
 }

@@ -70,9 +70,9 @@ platform services while keeping the initial cost profile modest.
 2. The bootstrap module has enabled the required Google Cloud APIs, including
    `compute.googleapis.com`, `container.googleapis.com`, `dns.googleapis.com`,
    `logging.googleapis.com`, and `monitoring.googleapis.com`.
-3. The dedicated GKE node-pool service account has the manual
-   `roles/container.defaultNodeServiceAccount` grant described in
-   [`../docs/bootstrap-exceptions.md`](../docs/bootstrap-exceptions.md).
+3. The bootstrap module has applied the Terraform-managed runtime project IAM
+   grants for the GKE node-pool, Crossplane, ExternalDNS, and cert-manager
+   Google service accounts.
 4. Your user is listed in `operator_members` for `bootstrap/`, so you hold
    `roles/iam.serviceAccountTokenCreator` on the service account.
 5. `gcloud` is installed, authenticated, and pointed at the right project.
@@ -91,6 +91,9 @@ committed.
 | `project_id` | required | Same project as `bootstrap/`. |
 | `tf_sa_account_id` | `terraform-automation` | Must match `bootstrap/`. |
 | `gke_node_pool_sa_account_id` | `gke-node-pool-sa` | Must match `bootstrap/`. |
+| `crossplane_gcp_sa_account_id` | `crossplane-sa` | Must match `bootstrap/`. |
+| `external_dns_sa_account_id` | `external-dns-sa` | Must match `bootstrap/`. |
+| `cert_manager_dns01_sa_account_id` | `cert-manager-dns01-sa` | Must match `bootstrap/`. |
 | `region` | `europe-west1` | Provider default region. |
 | `zone` | `europe-west1-b` | Zonal GKE cluster location. |
 | `cluster_name` | `group-f-platform-gke` | GKE cluster name. |
@@ -157,9 +160,8 @@ The cluster runs **GKE Dataplane V2** (`datapath_provider =
 `gcp-ajdininfrastructure-lol`, and outputs expose the zone name, DNS name, and
 authoritative name servers so the domain delegation can be documented outside
 Terraform. ExternalDNS and cert-manager receive Workload Identity service
-accounts in this module, but their project-level `roles/dns.admin` grants are
-manual operator bootstrap exceptions documented in
-[`../docs/bootstrap-exceptions.md`](../docs/bootstrap-exceptions.md).
+accounts in this module, while their project-level `roles/dns.admin` grants are
+managed by the bootstrap module.
 
 ## Outbound Internet (Cloud NAT)
 
@@ -199,18 +201,12 @@ or tenant resource manifests from the root Application.
 
 ## Provisioning Order
 
-Provisioning order is: bootstrap apply → manual node-GSA role grant → platform
-apply → manual DNS add-on grants.
+Provisioning order is: bootstrap apply → platform apply → GitOps add-on
+reconciliation.
 
-The manual node-GSA role grant must happen after bootstrap creates the
-dedicated GKE node-pool service account and before platform creates or updates
-the managed node pool. It creates no service-account key, plaintext secret, or
-credential.
-
-The manual DNS add-on grants must happen after platform creates the
-`external-dns-sa` and `cert-manager-dns01-sa` Google service accounts and
-before ExternalDNS or cert-manager are expected to manage the delegated Cloud
-DNS zone.
+The bootstrap module manages runtime-critical project IAM bindings for the GKE
+node-pool, Crossplane, ExternalDNS, and cert-manager Google service accounts.
+These grants create no service-account keys, plaintext secrets, or credentials.
 
 ## Run
 
