@@ -1,3 +1,39 @@
+locals {
+  # ArgoCD health assessment for Crossplane composite resources. Without it
+  # ArgoCD treats these custom kinds as Healthy on apply, so a never-Ready XR
+  # (e.g. a Cloud SQL instance stuck creating) is invisible and does not gate
+  # sync-wave progression. Reads the Crossplane Synced/Ready conditions.
+  crossplane_health_lua = <<-EOF
+    hs = {}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      local synced = nil
+      local ready = nil
+      for _, c in ipairs(obj.status.conditions) do
+        if c.type == "Synced" then synced = c end
+        if c.type == "Ready" then ready = c end
+      end
+      if synced ~= nil and synced.status == "False" then
+        hs.status = "Degraded"
+        hs.message = synced.message or synced.reason or "Synced=False"
+        return hs
+      end
+      if ready ~= nil and ready.status == "True" then
+        hs.status = "Healthy"
+        hs.message = ready.message or "Ready"
+        return hs
+      end
+      if ready ~= nil then
+        hs.status = "Progressing"
+        hs.message = ready.message or ready.reason or "Not ready"
+        return hs
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for resource to report status"
+    return hs
+  EOF
+}
+
 resource "helm_release" "argocd" {
   name             = "argocd"
   namespace        = var.argocd_namespace
@@ -24,7 +60,7 @@ resource "helm_release" "argocd" {
     yamlencode({
       configs = {
         cm = {
-          "resource.customizations.health.argoproj.io_Application" = <<-EOF
+          "resource.customizations.health.argoproj.io_Application"               = <<-EOF
             hs = {}
             if obj.status ~= nil then
               if obj.status.health ~= nil then
@@ -39,6 +75,8 @@ resource "helm_release" "argocd" {
             hs.message = "Waiting for Application to report health"
             return hs
           EOF
+          "resource.customizations.health.platform.fh-burgenland.at_SQLInstance" = local.crossplane_health_lua
+          "resource.customizations.health.platform.fh-burgenland.at_XTenant"     = local.crossplane_health_lua
         }
       }
     })
