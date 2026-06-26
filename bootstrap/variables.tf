@@ -53,7 +53,8 @@ variable "tf_sa_roles" {
     "roles/iam.serviceAccountAdmin",
     "roles/container.admin",
     "roles/iam.serviceAccountUser",
-    "roles/dns.admin", # Manages the delegated Cloud DNS zone.
+    "roles/dns.admin",                  # Manages the delegated Cloud DNS zone.
+    "roles/monitoring.dashboardEditor", # Manages the Cloud Monitoring dashboard (platform/monitoring.tf).
   ]
 }
 

@@ -68,6 +68,11 @@ output "delegated_dns_zone_name" {
   value       = google_dns_managed_zone.delegated_platform_zone.name
 }
 
+output "monitoring_dashboard_url" {
+  description = "Console URL of the tenant health & resources Cloud Monitoring dashboard."
+  value       = "https://console.cloud.google.com/monitoring/dashboards/builder/${reverse(split("/", google_monitoring_dashboard.tenant_health.id))[0]}?project=${var.project_id}"
+}
+
 output "delegated_dns_name" {
   description = "DNS name served by the delegated Cloud DNS managed zone."
   value       = google_dns_managed_zone.delegated_platform_zone.dns_name
